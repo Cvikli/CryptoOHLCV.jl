@@ -1,4 +1,4 @@
-# dev ./CryptoData
+# dev ./CryptoOHLCV
 using RelevanceStacktrace
 using Revise
 using CryptoOHLCV
@@ -30,7 +30,7 @@ ctx.dayframe=22:23
 d= ohlcv"tick100"
 
 #%%
-using CryptoData: query_trades
+using CryptoOHLCV: query_trades
 
 a = query_trades("BTC/USDT", 1703617440, 1703619440)
 

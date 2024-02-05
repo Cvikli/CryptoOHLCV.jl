@@ -3,11 +3,11 @@
 
 download_data(market::String, isfutures, start_date, end_date, candle="5m") = begin
   market_data = query_klines(replace(market, "_"=>""), candle, start_date, end_date, isfutures ? Val(:FUTURES) : Val(:SPOT));
-  o, h, l, c, v, ts = process_market_data_ohlcvt(market_data)
+  o, h, l, c, v, ts = marketdata2ohlcvt(market_data)
 end
 
 strip_jld2(s) = s[1:end-5] 
-get_filename(d::T) where T <: CandleType = "OHLCVT_$(d.exchange)_$(d.market)_$(isfutures_str(d.is_futures))_$(metric2candle(d.candle_value))_$(first(d.timeframe))-$(last(d.timeframe)).jld2"
+get_filename(d::T) where T <: CandleType = "OHLCVT_$(d.exchange)_$(d.market)_$(isfutures_str(d.is_futures))_$(metric2candle(d.candle_value))_$(first(d.timestamps))-$(last(d.timestamps)).jld2"
 get_filename(d::Tuple)                   = get_filename(d[2], "$(d[3])_$(d[4])", isfutures_str(d[5]), d[7], d[8], d[6])
 get_filename(exch::String, market::String, isfutures::Bool, start_date, end_date, candle) = "OHLCVT_$(exch)_$(market)_$(isfutures_str(isfutures))_$(candle)_$(start_date)-$(end_date).jld2"
 get_past_data_minute(exchange, market, isfutures) = [String.(split(strip_jld2(split(f,"/")[end]),"_")) for f in glob("OHLCVT_$(exchange)_$(market)_$(isfutures_str(isfutures))_*1m_*", "$(ctx.data_path)/")]
@@ -31,8 +31,8 @@ metric2candle(metric) = Dict(60 => "1m", 300 => "5m", 900 => "15m", 1800 => "30m
 
 
 
-print_file(o::OHLCV)   = println("$(get_filename(o)) train: $(unix2datetime(first(o.timeframe))) -> $(unix2datetime(last(o.timeframe)))")
-print_file(o::OHLCV_v) = println("$(get_filename(o)) valid: $(unix2datetime(first(o.timeframe))) -> $(unix2datetime(last(o.timeframe)))")
+print_file(o::OHLCV)   = println("$(get_filename(o)) train: $(unix2datetime(first(o.timestamps))) -> $(unix2datetime(last(o.timestamps)))")
+print_file(o::OHLCV_v) = println("$(get_filename(o)) valid: $(unix2datetime(first(o.timestamps))) -> $(unix2datetime(last(o.timestamps)))")
 
 save_it(OHLCV::T) where T <: CandleType = (print("Saving: "); print_file(OHLCV); @save "$(ctx.data_path)/$(get_filename(OHLCV))" OHLCV)
 
@@ -45,7 +45,7 @@ extend(d::T, o, h, l, c, v, OHLCV_time, misses) where T <: CandleType = begin
 end
 
 load_new_minute_data(exchange, market, isfutures, start_date, end_date) = begin
-	ohlcv = OHLCV(set=:undefined, exchange=exchange, market=market, is_futures=isfutures, candle_type=:MINUTE, candle_value=60, timeframe=start_date:end_date)
+	ohlcv = OHLCV(set=:undefined, exchange=exchange, market=market, is_futures=isfutures, candle_type=:MINUTE, candle_value=60, timestamps=start_date:end_date)
 	end_date <= start_date && return ohlcv
 	if exchange !== "binance"
     data_OHLCV, ts, misses = dwnl_data_ccxt("$(exchange):$(market):$(isfutures)", start_date, end_date, "1m", now)
@@ -57,7 +57,7 @@ load_new_minute_data(exchange, market, isfutures, start_date, end_date) = begin
 end
 
 load_new_tick_data(exchange, market, isfutures, start_date, end_date) = begin
-	ohlcv = OHLCV(set=:undefined, exchange=exchange, market=market, is_futures=isfutures, candle_type=:TICK, candle_value=0, timeframe=start_date:end_date)
+	ohlcv = OHLCV(set=:undefined, exchange=exchange, market=market, is_futures=isfutures, candle_type=:TICK, candle_value=0, timestamps=start_date:end_date)
 	end_date <= start_date && return ohlcv
 	if exchange !== "binance"
     data_OHLCV, ts, misses = dwnl_data_ccxt("$(exchange):$(market):$(isfutures)", start_date, end_date, "tick", now)
@@ -96,7 +96,7 @@ mergg(d1::T, d2::T) where T <: CandleType = begin
 	d1.l  = vcat(d1.l[1:end-1],d2.l)
 	d1.c  = vcat(d1.c[1:end-1],d2.c)
 	d1.v  = vcat(d1.v[1:end-1],d2.v)
-	d1.timeframe = first(d1.timeframe):last(d2.timeframe)
+	d1.timestamps = first(d1.timestamps):last(d2.timestamps)
 	return d1
 end
 
@@ -151,8 +151,7 @@ refresh_tick_data(exchange, market, isfutures, start_date, end_date) = begin
 	OHLCV_all
 end
 cut_data_tick!(d, OHLCV_all) = begin
-	global ctx
-	fr_ts, to_ts=first(ctx.timeframe)*1000, last(ctx.timeframe)*1000
+	fr_ts, to_ts=first(d.timestamps)*1000, last(d.timestamps)*1000
 	offset = 1
 	endset = length(OHLCV_all.ts)
 	while OHLCV_all.ts[offset] < fr_ts && offset < endset
@@ -170,9 +169,9 @@ cut_data_tick!(d, OHLCV_all) = begin
 end
 cut_data_1m!(d, OHLCV_all) = begin
 	min_candle_value = 60
-	fr_ts, to_ts=first(d.timeframe), last(d.timeframe)
-	offset =     cld(fr_ts - first(OHLCV_all.timeframe), min_candle_value)+1
-	endset = min(cld(to_ts - first(OHLCV_all.timeframe), min_candle_value)+1, length(OHLCV_all.c))
+	fr_ts, to_ts=first(d.timestamps), last(d.timestamps)
+	offset =     cld(fr_ts - first(OHLCV_all.timestamps), min_candle_value)+1
+	endset = min(cld(to_ts - first(OHLCV_all.timestamps), min_candle_value)+1, length(OHLCV_all.c))
 	
 	d.ts = OHLCV_all.ts[offset:endset]
 	d.o  = OHLCV_all.o[offset:endset]
@@ -183,8 +182,8 @@ cut_data_1m!(d, OHLCV_all) = begin
 	d
 end
 
-ceil_ts(ts,mv) = (m = ts%mv; m>0 ? ts-m+mv+1 : ts +1)
-floor_ts(ts,mv) = (m = ts%mv; m>0 ? ts-m : ts)
+ceil_ts( ts, mv) = (m = ts%max(mv, ctx.maximum_candle_size); m>0 ? ts-m+max(mv, ctx.maximum_candle_size)+1 : ts +1)
+floor_ts(ts, mv) = (m = ts%max(mv, ctx.maximum_candle_size); m>0 ? ts-m                : ts)
 
 rm_if_exist(fname) = if isfile("$(ctx.data_path)/$fname")
 	rm("$(ctx.data_path)/$fname")
@@ -203,8 +202,6 @@ clean_unused_datasets(largest_data) = begin
 		end
 	end
 end
-# fr_ts, to_ts = first(timeframe), last(timeframe)
-# load_minute_data("BTC_USDT", fr_ts, to_ts)
 
 
 
