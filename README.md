@@ -4,12 +4,12 @@ Simplest Crypto Data management
 ```julia
 using CryptoOHLCV
 
-d = ohlcv"1h"
+d = ohlcv"1h"           # the 1h candles of the train set for the market and range that is configured by the "ctx" module variable
 d = ohlcv"5m"
 d = ohlcv"1m"
 d = ohlcv"tick100"
-d = ohlcv_v"5m"
-d = ohlcv_v"30m"
+d = ohlcv_v"5m"         # validation 5m candles for the configured market
+d = ohlcv_v"30m"   
 d = ohlcv_v"tick500"
 ```
 
@@ -46,6 +46,7 @@ So the key is to "set the data range accurately" => Then work with this.
 - automatically cleans the data that is overlapped by bigger dataset.
 - tick100 or... so tickN options too to address tick data on a range
 - candle sync, so basically we cut every "start timestamp" to be divideable with a "hour" so if you use different timeframes, you still work on the same dataset, till you are below 1 hour. If you are over that, then you have to change the "maximum_candle_size" (in seconds)
+- handles validation and train dataset with a `_v` suffix. So we can make sure we don't overlap due to we select diffferent ranges for sure. 
 - with CCXT it can be easily extended to handle even more exchange. (not sure if it is working atm but it is easily implementable for sure from here)
 
 
