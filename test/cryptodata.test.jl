@@ -2,7 +2,6 @@
 using RelevanceStacktrace
 using Revise
 using CryptoOHLCV
-
 # ctx.market   = "binance:BNB_BTC:futures"
 ctx.dayframe = 0:2
 # ctx.dayframe=14:31

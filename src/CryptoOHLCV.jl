@@ -3,8 +3,7 @@ module CryptoOHLCV
 
 using Boilerplate
 
-using BinanceAPI.Utils: RateLimiter
-using BinanceAPI: query_klines, query_ticks, initialize_binance, marketdata2ohlcvt, MODE
+using BinanceAPI: query_klines, query_ticks, initialize_binance, marketdata2ohlcvt
 using Dates
 using JLD2
 using FileIO
