@@ -27,7 +27,7 @@ using Base: @kwdef
 abstract type CandleType end
 
 date_range(ohlcv::T) where T <: CandleType = date_range(first(ohlcv.timestamps),last(ohlcv.timestamps)) # format(DateTime(first(ohlcv.ts)), "yyyy.mm.dd HH:MM")
-splat(ohlcv::T)      where T <: CandleType = (ohlcv.o,ohlcv.h,ohlcv.c,ohlcv.l,ohlcv.v)
+splatt(ohlcv::T)     where T <: CandleType = (ohlcv.o,ohlcv.h,ohlcv.c,ohlcv.l,ohlcv.v,ohlcv.ts)
 
 
 @kwdef mutable struct OHLCV <: CandleType
@@ -84,32 +84,29 @@ ohlcv_init(TYPE, ctx, candle) = begin
 					is_futures=  isfutures, 
 					candle_type= candle_type,
 					candle_value=candle_value)
-
-
-	d
 end
 
 
 macro ohlcv_str(candle)
 	global ctx, loaded_train_datasets
 	fr, to = first(ctx.timestamps), last(ctx.timestamps)
-	(candle, fr, to) in keys(loaded_train_datasets) && ctx.use_cache && return loaded_train_datasets[candle, fr, to]
+	(ctx.market, candle, fr, to) in keys(loaded_train_datasets) && ctx.use_cache && return loaded_train_datasets[ctx.market, candle, fr, to]
 	obj = ohlcv_init(OHLCV, ctx, candle)
 	obj.timestamps = ceil_ts(fr, obj.candle_value):floor_ts(to, obj.candle_value)
 	obj.set       = :TRAIN
 	parse_ohlcv_data!(obj)
-	loaded_train_datasets[candle, fr, to] = obj 
+	loaded_train_datasets[ctx.market, candle, fr, to] = obj 
 end
 
 macro ohlcv_v_str(candle)
 	global ctx, loaded_valid_datasets
 	fr, to = first(ctx.timestamps_v), last(ctx.timestamps_v)
-	(candle, fr, to) in keys(loaded_valid_datasets) && ctx.use_cache && return loaded_valid_datasets[candle, fr, to]
+	(ctx.market, candle, fr, to) in keys(loaded_valid_datasets) && ctx.use_cache && return loaded_valid_datasets[ctx.market, candle, fr, to]
 	obj = ohlcv_init(OHLCV_v, ctx, candle)
 	obj.timestamps = ceil_ts(fr, obj.candle_value):floor_ts(to, obj.candle_value)
 	obj.set       = :VALIDATION
 	parse_ohlcv_data!(obj)
-	loaded_valid_datasets[candle, fr, to] = obj
+	loaded_valid_datasets[ctx.market, candle, fr, to] = obj
 end
 
 
@@ -132,6 +129,7 @@ parse_ohlcv_data!(d::T) where T <: CandleType = begin
 	else
 		all_data = refresh_minute_data(d.exchange, d.market, d.is_futures, first(d.timestamps), last(d.timestamps))
 		cut_data_1m!(d, all_data)
+
 		@assert d.candle_value>=60 "We cannot handle things under 1min(60s) d.candle_value=$(d.candle_value)"
 		metric_round = cld(d.candle_value,60)
 		d.o, d.h, d.l, d.c, d.v, d.ts = combine_klines_fast(d, metric_round)
@@ -139,8 +137,8 @@ parse_ohlcv_data!(d::T) where T <: CandleType = begin
 end
 
 
-loaded_train_datasets = Dict{Tuple{String, Int, Int}, OHLCV  }()
-loaded_valid_datasets = Dict{Tuple{String, Int, Int}, OHLCV_v}()
+loaded_train_datasets = Dict{Tuple{String, String, Int, Int}, OHLCV  }()
+loaded_valid_datasets = Dict{Tuple{String, String, Int, Int}, OHLCV_v}()
 					
 
 include("CryptoOHLCVUtils.jl")

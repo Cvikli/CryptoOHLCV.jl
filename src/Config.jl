@@ -20,8 +20,9 @@ module_directory = string(string(@__FILE__)[1:end-14]) # hardcoded... so basical
 	now_ts::Int       = init_now_ts          
 	now_dt::DateTime  = unix2datetime(init_now_ts) 
 
-	maximum_candle_size::Int     = 3600
+	maximum_candle_size::Int  = 3600
   
+	floor_instead_of_ceil     = true  # We prefer the first hour too. So when we request 1 day of 1h then we get 24s of 1h.
 
 	data_path::String = module_directory*"/data"
 end
@@ -29,15 +30,16 @@ end
 ctx::Config = Config()
 
 Base.setproperty!(a::Config, s::Symbol, v) = begin
+	getfield(a,s) == v && return v
 	if s in [:timestamps, :timestamps_v]
 		# get_cutters_minute_correction(OHLCV_all, 1)
 		println("Current  range $(join(string.(date_range(first(getfield(a,s)), last(getfield(a,s))))," - "))")
-		println("Updating to    $(join(string.(date_range(first(v),           last(v)))," - "))")
+		println("Updating to    $(join(string.(date_range(first(v),             last(v)))," - "))")
 	end
 	if s in [:dayframe, :dayframe_v, ]
 		# get_cutters_minute_correction(OHLCV_all, 1)
-		println("Current  range $(join(string.(date_range(Δday2ts(first(getfield(a,s))), Δday2ts(last(getfield(a,s)))))," - "))")
-		println("Updating to    $(join(string.(date_range(Δday2ts(last(v)),   Δday2ts(first(v))))," - "))")
+		println("Current  range $(join(string.(date_range(Δday2ts(last(getfield(a,s))), Δday2ts(first(getfield(a,s)))))," - "))")
+		println("Updating to    $(join(string.(date_range(Δday2ts(last(v)),             Δday2ts(first(v))))," - "))")
 	end
 	setfield!(a, s, v)
 	s==:now_ts      && setfield!(a, :now_dt,      unix2datetime(v))

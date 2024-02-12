@@ -34,7 +34,8 @@ metric2candle(metric) = Dict(60 => "1m", 300 => "5m", 900 => "15m", 1800 => "30m
 print_file(o::OHLCV)   = println("$(get_filename(o)) train: $(unix2datetime(first(o.timestamps))) -> $(unix2datetime(last(o.timestamps)))")
 print_file(o::OHLCV_v) = println("$(get_filename(o)) valid: $(unix2datetime(first(o.timestamps))) -> $(unix2datetime(last(o.timestamps)))")
 
-save_it(OHLCV::T) where T <: CandleType = (print("Saving: "); print_file(OHLCV); @save "$(ctx.data_path)/$(get_filename(OHLCV))" OHLCV)
+save_it(ohlcv::OHLCV_v) = save_it(fix_type(ohlcv,OHLCV))
+save_it(ohlcv::OHLCV)   = (isfile("$(ctx.data_path)/$(get_filename(ohlcv))") && return; print("Saving: "); print_file(ohlcv); @save "$(ctx.data_path)/$(get_filename(ohlcv))" ohlcv)
 
 extend(d::T, o, h, l, c, v, OHLCV_time, misses) where T <: CandleType = begin
 	!isempty(d.ts) && (d.ts = vcat(d.ts,OHLCV_time))
@@ -108,12 +109,13 @@ refresh_minute_data(exchange, market, isfutures, start_date, end_date) = begin
 		_,ex,m1,m2,fu,candl,fr_ts,to_ts = largest_data[1]
 		# @display largest_data
 		filename  = get_filename(exchange,market, isfutures, fr_ts,to_ts, "1m")
-		@load "$(ctx.data_path)/$filename" OHLCV
-		OHLCV_all = OHLCV
+		@load "$(ctx.data_path)/$filename" ohlcv
+		OHLCV_all = ohlcv::OHLCV
 		OHLCV_p   = load_new_minute_data(exchange, market, isfutures, start_date, fr_ts)
 		OHLCV_n   = load_new_minute_data(exchange, market, isfutures, to_ts, end_date)
 		length(OHLCV_p.c)>0 && (OHLCV_all = mergg(OHLCV_p, OHLCV_all))
 		length(OHLCV_n.c)>0 && (OHLCV_all = mergg(OHLCV_all, OHLCV_n))
+
 		clean_unused_datasets(largest_data)
 	else
 		OHLCV_all = load_new_minute_data(exchange, market, isfutures, start_date, end_date)
@@ -132,8 +134,8 @@ refresh_tick_data(exchange, market, isfutures, start_date, end_date) = begin
 		largest_data = sort(filedata, by=(v) -> (v[8],2e9-v[7]), rev=true)
 		_,ex,m1,m2,fu,candl,fr_ts,to_ts = largest_data[1]
 		filename  = get_filename(exchange,market, isfutures, fr_ts,to_ts, "tick")
-		@load "$(ctx.data_path)/$filename" OHLCV
-		OHLCV_all = OHLCV
+		@load "$(ctx.data_path)/$filename" ohlcv
+		OHLCV_all = ohlcv::OHLCV
 		OHLCV_p   = load_new_tick_data(exchange, market, isfutures, start_date, fr_ts)
 		OHLCV_n   = load_new_tick_data(exchange, market, isfutures, to_ts, end_date)
 		length(OHLCV_p.c)>0 && (OHLCV_all = mergg(OHLCV_p, OHLCV_all))
@@ -170,8 +172,10 @@ end
 cut_data_1m!(d, OHLCV_all) = begin
 	min_candle_value = 60
 	fr_ts, to_ts=first(d.timestamps), last(d.timestamps)
+
 	offset =     cld(fr_ts - first(OHLCV_all.timestamps), min_candle_value)+1
-	endset = min(cld(to_ts - first(OHLCV_all.timestamps), min_candle_value)+1, length(OHLCV_all.c))
+	endset = cld(to_ts - first(OHLCV_all.timestamps) + 1, min_candle_value)
+	@assert endset<=length(OHLCV_all.h) "how can this be bigger?? $endset, $(length(OHLCV_all.h))"
 	
 	d.ts = OHLCV_all.ts[offset:endset]
 	d.o  = OHLCV_all.o[offset:endset]
@@ -182,8 +186,10 @@ cut_data_1m!(d, OHLCV_all) = begin
 	d
 end
 
-ceil_ts( ts, mv) = (m = ts%max(mv, ctx.maximum_candle_size); m>0 ? ts-m+max(mv, ctx.maximum_candle_size)+1 : ts +1)
-floor_ts(ts, mv) = (m = ts%max(mv, ctx.maximum_candle_size); m>0 ? ts-m                : ts)
+# WARN! We are taking the lower end of the timeframe! 
+# ceil_ts( ts, mv) = ts - (ts%max(mv, ctx.maximum_candle_size)) #(m = ts%max(mv, ctx.maximum_candle_size); m>0 ? ts-m+max(mv, ctx.maximum_candle_size) : ts)
+ceil_ts( ts, mv) = ctx.floor_instead_of_ceil ? ts - (ts%max(mv, ctx.maximum_candle_size)) : (m = ts%max(mv, ctx.maximum_candle_size); m>0 ? ts-m+max(mv, ctx.maximum_candle_size) : ts)
+floor_ts(ts, mv) = ts - (ts%max(mv, ctx.maximum_candle_size))-1
 
 rm_if_exist(fname) = if isfile("$(ctx.data_path)/$fname")
 	rm("$(ctx.data_path)/$fname")

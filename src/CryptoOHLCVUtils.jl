@@ -12,11 +12,11 @@ combine_klines_fast(ohlcv, window, offset=0) = begin
 	o,h,l,c,v,ts = ohlcv.o,ohlcv.h,ohlcv.l,ohlcv.c,ohlcv.v,ohlcv.ts
   window == 1 && return o,h,l,c,v,ts
   inds = 1+offset:window:size(o, 1) - window + 1
-  new_o  = Vector{eltype(o)}(undef, length(inds))
-  new_h  = Vector{eltype(o)}(undef, length(inds))
-  new_l  = Vector{eltype(o)}(undef, length(inds))
-  new_c  = Vector{eltype(o)}(undef, length(inds))
-  new_v  = Vector{eltype(o)}(undef, length(inds))
+  new_o  = Vector{eltype(o )}(undef, length(inds))
+  new_h  = Vector{eltype(o )}(undef, length(inds))
+  new_l  = Vector{eltype(o )}(undef, length(inds))
+  new_c  = Vector{eltype(o )}(undef, length(inds))
+  new_v  = Vector{eltype(o )}(undef, length(inds))
   new_ts = Vector{eltype(ts)}(undef, length(inds))
   for (j, i) in enumerate(inds)
     new_o[j],new_h[j],new_l[j],new_c[j],new_v[j],new_ts[j] = combine_klines!(o,h,l,c,v,ts, i, i+window-1)
@@ -28,11 +28,11 @@ combine_klines_fast_tick(ohlcv, window, ::Val{:TICK}, offset=0) = begin
   window == 1 && return o,h,l,c,v,ts
 	max_len = length(o)
 	ass_len = cld(length(o), window)
-  new_o  = Vector{eltype(o)}(undef,  ass_len)
-  new_h  = Vector{eltype(o)}(undef,  ass_len)
-  new_l  = Vector{eltype(o)}(undef,  ass_len)
-  new_c  = Vector{eltype(o)}(undef,  ass_len)
-  new_v  = Vector{eltype(o)}(undef,  ass_len)
+  new_o  = Vector{eltype(o )}(undef, ass_len)
+  new_h  = Vector{eltype(o )}(undef, ass_len)
+  new_l  = Vector{eltype(o )}(undef, ass_len)
+  new_c  = Vector{eltype(o )}(undef, ass_len)
+  new_v  = Vector{eltype(o )}(undef, ass_len)
   new_ts = Vector{eltype(ts)}(undef, ass_len)
 	i = 2
 	j = 0
