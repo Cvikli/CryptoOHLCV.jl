@@ -38,16 +38,16 @@ end
  ```
 So the key is to "set the data range accurately" => Then work with this. 
 
-# It:
-- handles different timeframes
-- configurable timerange and dataset with days (or timestamps)
-- caches locally (so the next time you access the ohlcv"5m" on this range it is just map out the value from the dictionary)
-- caches to the disk, so whenever you download some new dataset, it will be reused later on by extending this further.
-- automatically cleans the data that is overlapped by bigger dataset.
-- tick100 or... so tickN options too to address tick data on a range
-- candle sync, so basically we cut every "start timestamp" to be divideable with a "hour" so if you use different timeframes, you still work on the same dataset, till you are below 1 hour. If you are over that, then you have to change the "maximum_candle_size" (in seconds)
-- handles validation and train dataset with a `_v` suffix. So we can make sure we don't overlap due to we select diffferent ranges for sure. 
-- with CCXT it can be easily extended to handle even more exchange. (not sure if it is working atm but it is easily implementable for sure from here)
+# Features
+- It handles different timeframes
+- Configurable timerange and dataset with days (or timestamps) with `ctx`.
+- Caches locally (so the next time you access the ohlcv"5m" on this range it is just map out the value from the dictionary)
+- Caches to the disk, so whenever you download some new dataset, it will be reused later on by extending this further.
+- Automatically cleans the data that is overlapped by bigger dataset.
+- `tick100` or... so `tick`N options to address tick data on a range
+- Candle sync, so basically we cut every "start timestamp" to be divideable with a "hour" so if you use different timeframes, you still work on the same dataset, till you are below 1 hour. If you are over that, then you have to change the "maximum_candle_size" (in seconds)
+- It handles validation and train dataset with a `_v` suffix. So we can make sure we don't overlap due to we select diffferent ranges for sure. 
+- CCXT is used, it can be easily extended to handle even more exchange. (Not sure if it is working atm but it is easily implementable for sure from here)
 
 
 # TODO:

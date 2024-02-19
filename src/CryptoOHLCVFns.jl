@@ -44,7 +44,7 @@ extend(d::T, o, h, l, c, v, OHLCV_time, misses) where T <: CandleType = begin
 	 isempty(d.misses) && (d.misses = misses)
 	d.o,d.h,d.l,d.c,d.v = o, h, l, c, v
 end
-
+dwnl_data_ccxt(src, start_date, end_date, candle, ct_now) = @assert false "unimplemented... I need to copy this yet..."
 load_new_minute_data(exchange, market, isfutures, start_date, end_date) = begin
 	ohlcv = OHLCV(set=:undefined, exchange=exchange, market=market, is_futures=isfutures, candle_type=:MINUTE, candle_value=60, timestamps=start_date:end_date)
 	end_date <= start_date && return ohlcv

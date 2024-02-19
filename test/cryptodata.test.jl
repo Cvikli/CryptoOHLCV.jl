@@ -1,12 +1,13 @@
 # dev ./CryptoOHLCV
 using RelevanceStacktrace
+using Boilerplate
 using Revise
 using CryptoOHLCV
 # ctx.market   = "binance:BNB_BTC:futures"
-ctx.dayframe = 0:2
+ctx.dayframe = 0:6
 # ctx.dayframe=14:31
 
-d= ohlcv"1h"
+d = ohlcv"1h"
 # d= ohlcv"5m"
 # d= ohlcv"1m"
 # d= ohlcv"tick100"
