@@ -53,5 +53,23 @@ combine_klines_fast_tick(ohlcv, window, ::Val{:TICK}, offset=0) = begin
   new_o[1:j], new_h[1:j], new_l[1:j], new_c[1:j], new_v[1:j], new_ts[1:j]
 end
 
+norm_data!(ohlcv,avg) = begin
+  ohlcv.o ./= avg
+  ohlcv.h ./= avg
+  ohlcv.l ./= avg
+  ohlcv.c ./= avg
+end
+function normalize!(ohlcv, ohlcv_v)
+  avg = (sum(ohlcv.c)+sum(ohlcv_v.c)) ./ (length(ohlcv.c)+length(ohlcv_v.c))
+  norm_data!(ohlcv, avg), norm_data!(ohlcv_v, avg)
+  avg
+end
+
+
+
+
+
+
+
 
 
