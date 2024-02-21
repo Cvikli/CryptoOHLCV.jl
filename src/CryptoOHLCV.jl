@@ -27,7 +27,7 @@ using Base: @kwdef
 abstract type CandleType end
 
 date_range(ohlcv::T) where T <: CandleType = date_range(first(ohlcv.timestamps),last(ohlcv.timestamps)) # format(DateTime(first(ohlcv.ts)), "yyyy.mm.dd HH:MM")
-splatt(ohlcv::T)     where T <: CandleType = (ohlcv.o,ohlcv.h,ohlcv.c,ohlcv.l,ohlcv.v,ohlcv.ts)
+splatt(ohlcv::T)     where T <: CandleType = (ohlcv.o,ohlcv.h,ohlcv.l,ohlcv.c,ohlcv.v,ohlcv.ts)
 
 
 @kwdef mutable struct OHLCV <: CandleType
