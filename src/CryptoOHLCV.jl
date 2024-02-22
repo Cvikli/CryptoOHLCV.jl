@@ -67,6 +67,7 @@ set(::OHLCV_v) = :VALIDATION
 
 date_range(ohlcv::T) where T <: CandleType = date_range(first(ohlcv.timestamps),last(ohlcv.timestamps)) # format(DateTime(first(ohlcv.ts)), "yyyy.mm.dd HH:MM")
 splatt(ohlcv::T)     where T <: CandleType = (ohlcv.o,ohlcv.h,ohlcv.l,ohlcv.c,ohlcv.v,ohlcv.ts)
+splatt_notime(ohlcv::T) where T <: CandleType = (ohlcv.o,ohlcv.h,ohlcv.l,ohlcv.c,ohlcv.v)
 
 fix_type(d::OHLCV_v, ::Type{OHLCV_v}) = d
 fix_type(d::OHLCV,   ::Type{OHLCV})   = d
