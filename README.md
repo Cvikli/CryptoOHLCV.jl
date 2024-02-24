@@ -1,5 +1,6 @@
 # CryptoOHLCV.jl
-Simplest Crypto Data management
+Simplest Crypto Data management. 
+Built upon [UltimateStruct.jl](https://github.com/Cvikli/UniversalStruct.jl).
 
 ```julia
 using CryptoOHLCV
@@ -15,7 +16,7 @@ d = ohlcv_v"tick500"
 
 Basically you can get the timeframe data anytime.
 
-To configure your dataset you have to set the "Config"
+To configure your dataset you have to set the `Config`
 
 ```julia
 using CryptoOHLCV
@@ -36,7 +37,10 @@ ctx.dayframe = 0:2
   data_path::String = "./data"
 end
  ```
-So the key is to "set the data range accurately" => Then work with this. 
+So the key is to  define the data accurately ranges => Then query with different market/timeframe/spot&futures or even exchanges(by CCXT later on). 
+
+
+
 
 # Features
 - It handles different timeframes
@@ -50,9 +54,10 @@ So the key is to "set the data range accurately" => Then work with this.
 - CCXT is used, it can be easily extended to handle even more exchange. (Not sure if it is working atm but it is easily implementable for sure from here)
 
 
+
 # TODO:
 - We have to implement the "LIVE" feature. so the data would be always addressing the "from:LIVE" range. VERY easy to do... so later on!
-- checking for errors!
+- use this: https://github.com/baggepinnen/SignalAlignment.jl
 
 # Any advice is appreciated!
 

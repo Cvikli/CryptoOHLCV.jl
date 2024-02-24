@@ -24,7 +24,7 @@ module_directory = string(string(@__FILE__)[1:end-14]) # hardcoded... so basical
   
 	floor_instead_of_ceil     = true  # We prefer the first hour too. So when we request 1 day of 1h then we get 24s of 1h.
 
-	data_path::String = module_directory*"/data"
+	data_path::String = module_directory*"/data/"
 end
 
 ctx::Config = Config()

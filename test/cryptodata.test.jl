@@ -2,9 +2,10 @@
 using RelevanceStacktrace
 using Boilerplate
 using Revise
+using UniversalStruct
 using CryptoOHLCV
 # ctx.market   = "binance:BNB_BTC:futures"
-ctx.dayframe = 0:6
+ctx.dayframe = 13:59
 # ctx.dayframe=14:31
 
 d = ohlcv"1h"
@@ -17,6 +18,14 @@ d = ohlcv"1h"
 # d= ohlcv_v"30m"
 # d= ohlcv_v"tick500"
 
+#%%
+(UniversalStruct.folder(d))
+#%%
+f=Int.((d.ts .+  60000) ./ 3600000)
+#%%
+println(f[2:end] .- f[1:end-1])
+#%%
+(f[3]+1) /36
 #%%
 floor(Int,datetime2unix(now()))
 #%%
