@@ -2,14 +2,14 @@
 
 
 
-UniversalStruct.need_data_before(o::T, c::T)  where T <: CandleType = first(o.timestamps) < first(c.timestamps)
-UniversalStruct.need_data_after(o::T,  c::T)  where T <: CandleType = last(c.timestamps)  < last(o.timestamps)
+UniversalStruct.need_data_before(o::T1, c::T2)  where {T1 <: CandleType, T2 <: CandleType}= first(o.timestamps) < first(c.timestamps)
+UniversalStruct.need_data_after(o::T1,  c::T2)  where {T1 <: CandleType, T2 <: CandleType}= last(c.timestamps)  < last(o.timestamps)
 
-UniversalStruct.init_before_data(o::T, c::T)  where T <: CandleType = UniversalStruct.init(T, get_source(o.exchange, o.market, o.is_futures), reverse_parse_candle(o.candle_type, o.candle_value), first(o.timestamps), first(c.timestamps))
-UniversalStruct.init_after_data(o::T,  c::T)  where T <: CandleType = UniversalStruct.init(T, get_source(o.exchange, o.market, o.is_futures), reverse_parse_candle(o.candle_type, o.candle_value), last(c.timestamps),  last(o.timestamps))
+UniversalStruct.init_before_data(o::T1, c::T2)  where {T1 <: CandleType, T2 <: CandleType} = UniversalStruct.init(T, get_source(o.exchange, o.market, o.is_futures), reverse_parse_candle(o.candle_type, o.candle_value), first(o.timestamps), first(c.timestamps))
+UniversalStruct.init_after_data(o::T1,  c::T2)  where {T1 <: CandleType, T2 <: CandleType} = UniversalStruct.init(T, get_source(o.exchange, o.market, o.is_futures), reverse_parse_candle(o.candle_type, o.candle_value), last(c.timestamps),  last(o.timestamps))
 
 
-UniversalStruct.append(o::T, c::T)            where T <: CandleType = begin 
+UniversalStruct.append(o::T1, c::T2)            where {T1 <: CandleType, T2 <: CandleType} = begin 
 	o.ts = vcat(o.ts,c.ts) # TODO... this seems bad!!
 	o.o  = vcat(o.o, c.o)
 	o.h  = vcat(o.h, c.h)
@@ -20,7 +20,7 @@ UniversalStruct.append(o::T, c::T)            where T <: CandleType = begin
 	return o
 end
 
-UniversalStruct.cut_requested!(o::T, c::T)    where T <: CandleType = return if o.candle_type in [:SECOND,:MINUTE,:HOUR,:DAY]
+UniversalStruct.cut_requested!(o::T1, c::T2)    where {T1 <: CandleType, T2 <: CandleType} = return if o.candle_type in [:SECOND,:MINUTE,:HOUR,:DAY]
 	cut_data_1m!(o, c)
 else
 	cut_data_tick!(o, c)

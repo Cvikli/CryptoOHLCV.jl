@@ -14,6 +14,6 @@ UniversalStruct.score(data)                                 = begin
 	return to - fr
 end
 
-UniversalStruct.save_disk(o::OHLCV_v, needclean=true)       = save_disk(fix_type(o,OHLCV),needclean)
+UniversalStruct.save_disk(o::OHLCV_v, needclean=true)       = UniversalStruct.save_disk(fix_type(o,OHLCV),needclean)
 
 

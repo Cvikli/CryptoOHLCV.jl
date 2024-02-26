@@ -30,7 +30,7 @@ reverse_parse_candle(candly_type, candle_value) = begin
 end
 
 
-UniversalStruct.init(TYPE::Type{OHLCV}, src, candle, fr, to) = begin
+UniversalStruct.init(TYPE::Type{T}, src, candle, fr, to) where T <: CandleType = begin
 	exchange, market, isfutures = market_name_process(src)
 	candle_type, candle_value   = parse_ohlcv_meta(candle)
 	TYPE(exchange=    exchange,

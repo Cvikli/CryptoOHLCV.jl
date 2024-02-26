@@ -77,14 +77,12 @@ fix_type(d::OHLCV_v, ::Type{OHLCV})   = OHLCV(d.exchange, d.market, d.is_futures
 														
 
 
-UniversalStruct.load(TYPE, args...; kw_args...) = @show "HEYEEcqEE"
 
 include("CryptoOHLCVUtils.jl")
 include("CryptoOHLCV_InitLoad.jl")
 include("CryptoOHLCV_Extend.jl")
 include("CryptoOHLCV_Persist.jl")
 
-UniversalStruct.load(TYPE, args...; kw_args...) = @show "HEYEE	EE"
 
 macro ohlcv_str(candle)
 	global ctx
@@ -94,12 +92,11 @@ macro ohlcv_str(candle)
 	d
 end
 
-UniversalStruct.load(TYPE, args...; kw_args...) = @show "HEYEEEE"
 
 macro ohlcv_v_str(candle)
 	global ctx
 	fr, to, market = first(ctx.timestamps_v), last(ctx.timestamps_v), ctx.market
-	d = @memoize_typed OHLCV_v load_v(OHLCV_v, market, candle, fr, to)
+	d = @memoize_typed OHLCV_v load(OHLCV_v, market, candle, fr, to)
 	postprocess_ohlcv!(d)
 	d
 end
