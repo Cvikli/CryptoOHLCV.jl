@@ -5,8 +5,8 @@
 UniversalStruct.need_data_before(o::T1, c::T2)  where {T1 <: CandleType, T2 <: CandleType}= first(o.timestamps) < first(c.timestamps)
 UniversalStruct.need_data_after(o::T1,  c::T2)  where {T1 <: CandleType, T2 <: CandleType}= last(c.timestamps)  < last(o.timestamps)
 
-UniversalStruct.init_before_data(o::T1, c::T2)  where {T1 <: CandleType, T2 <: CandleType} = UniversalStruct.init(T, get_source(o.exchange, o.market, o.is_futures), reverse_parse_candle(o.candle_type, o.candle_value), first(o.timestamps), first(c.timestamps))
-UniversalStruct.init_after_data(o::T1,  c::T2)  where {T1 <: CandleType, T2 <: CandleType} = UniversalStruct.init(T, get_source(o.exchange, o.market, o.is_futures), reverse_parse_candle(o.candle_type, o.candle_value), last(c.timestamps),  last(o.timestamps))
+UniversalStruct.init_before_data(o::T1, c::T2)  where {T1 <: CandleType, T2 <: CandleType} = UniversalStruct.init(T1, get_source(o.exchange, o.market, o.is_futures), reverse_parse_candle(o.candle_type, o.candle_value), first(o.timestamps), first(c.timestamps))
+UniversalStruct.init_after_data(o::T1,  c::T2)  where {T1 <: CandleType, T2 <: CandleType} = UniversalStruct.init(T2, get_source(o.exchange, o.market, o.is_futures), reverse_parse_candle(o.candle_type, o.candle_value), last(c.timestamps),  last(o.timestamps))
 
 
 UniversalStruct.append(o::T1, c::T2)            where {T1 <: CandleType, T2 <: CandleType} = begin 

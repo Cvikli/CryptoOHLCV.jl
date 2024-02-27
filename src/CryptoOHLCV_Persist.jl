@@ -9,7 +9,7 @@ UniversalStruct.parse_args(args)                            = begin
 	(fr, to) = split(fr_to_ts,"-")
 	return String(ex), "$(m1)_$(m2)", isfutures_str(String(future)), String(candl_v), parse(Int,fr), parse(Int,to)
 end
-UniversalStruct.score(data)                                 = begin 
+UniversalStruct.score(data::Tuple{String,String,Bool,String,Int,Int}) = begin # we specify types for avoiding precompilation issue! Type piracy 
 	ex,maket,future, candl_v, fr, to = data
 	return to - fr
 end
