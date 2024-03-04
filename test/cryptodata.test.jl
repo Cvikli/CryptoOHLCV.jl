@@ -14,7 +14,7 @@ d = ohlcv"1h"
 # d= ohlcv"tick100"
 # d= ohlcv"sick100"
 # d= ohlcv"mick100"
-# d= ohlcv_v"5m"
+d= ohlcv_v"5m"
 # d= ohlcv_v"30m"
 # d= ohlcv_v"tick500"
 

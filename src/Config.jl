@@ -6,7 +6,7 @@ init_now_ts::Int=1707_132_143  #_562    # 2024-01-29T15:41:39.562   DateTime("20
 module_directory = string(string(@__FILE__)[1:end-14]) # hardcoded... so basically we cut the "/src/Config.jl"
 
 # TODO LIVE... so "from_timestamp" -> "now()"
-@kwdef mutable struct Config
+@kwdef mutable struct OHLCVConfig
 	use_cache::Bool   = true 
 	# use_cache::Bool   = false 
 
@@ -22,14 +22,16 @@ module_directory = string(string(@__FILE__)[1:end-14]) # hardcoded... so basical
 
 	maximum_candle_size::Int  = 3600
   
-	floor_instead_of_ceil     = true  # We prefer the first hour too. So when we request 1 day of 1h then we get 24s of 1h.
+	min_max_move::Float32     = 0.002f0   # 0.2% maxdiff
+
+	floor_instead_of_ceil     = true  # We prefer the first hour too. So when we request 1 day of 1h then we get 24  1h candle.
 
 	data_path::String = module_directory*"/data/"
 end
 
-ctx::Config = Config()
+ctx::OHLCVConfig = OHLCVConfig()
 
-Base.setproperty!(a::Config, s::Symbol, v) = begin
+Base.setproperty!(a::OHLCVConfig, s::Symbol, v) = begin
 	getfield(a,s) == v && return v
 	if s in [:timestamps, :timestamps_v]
 		# get_cutters_minute_correction(OHLCV_all, 1)
@@ -42,12 +44,12 @@ Base.setproperty!(a::Config, s::Symbol, v) = begin
 		println("Updating to    $(join(string.(date_range(Δday2ts(last(v)),             Δday2ts(first(v))))," - "))")
 	end
 	setfield!(a, s, v)
-	s==:now_ts      && setfield!(a, :now_dt,      unix2datetime(v))
-	s==:now_dt      && setfield!(a, :now_ts,      floor(Int,datetime2unix(v)))
-	s==:timestamps   && setfield!(a, :dayframe,    ts2Δday(last(v)):ts2Δday(first(v)))
-	s==:timestamps_v && setfield!(a, :dayframe_v,  ts2Δday(last(v)):ts2Δday(first(v)))
-	s==:dayframe    && setfield!(a, :timestamps,   Δday2ts(last(v)):Δday2ts(first(v)))
-	s==:dayframe_v  && setfield!(a, :timestamps_v, Δday2ts(last(v)):Δday2ts(first(v)))
+	s==:now_ts       && setfield!(a, :now_dt,       unix2datetime(v))
+	s==:now_dt       && setfield!(a, :now_ts,       floor(Int,datetime2unix(v)))
+	s==:timestamps   && setfield!(a, :dayframe,     ts2Δday(last(v)):ts2Δday(first(v)))
+	s==:timestamps_v && setfield!(a, :dayframe_v,   ts2Δday(last(v)):ts2Δday(first(v)))
+	s==:dayframe     && setfield!(a, :timestamps,   Δday2ts(last(v)):Δday2ts(first(v)))
+	s==:dayframe_v   && setfield!(a, :timestamps_v, Δday2ts(last(v)):Δday2ts(first(v)))
 	v
 end
 
@@ -55,7 +57,7 @@ end
 ts2Δday(ts)    = (Day(ctx.now_dt) - Day(unix2datetime(ts))).value
 Δday2ts(day)   = floor(Int,datetime2unix(Δday2date(day)))
 Δday2date(day) = (global ctx; ctx.now_dt-Day(day))
-init(ctx::Config) = begin
+initConfig(ctx::OHLCVConfig) = begin
 	ctx.now_dt      = unix2datetime(ctx.now_ts) 
 	setfield!(ctx, :timestamps,   Δday2ts(last(ctx.dayframe)):  Δday2ts(first(ctx.dayframe)))
 	setfield!(ctx, :timestamps_v, Δday2ts(last(ctx.dayframe_v)):Δday2ts(first(ctx.dayframe_v)))
@@ -66,7 +68,7 @@ end
 train_valid_ratio() = length(ctx.timestamps)/(length(timestamps)+length(timestamps_v))
 
 
-init(ctx)
+initConfig(ctx)
 
 
 

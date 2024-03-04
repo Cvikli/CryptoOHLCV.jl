@@ -83,23 +83,26 @@ include("CryptoOHLCV_InitLoad.jl")
 include("CryptoOHLCV_Extend.jl")
 include("CryptoOHLCV_Persist.jl")
 
+const ohlcv_load   = Dict{Tuple{DataType, String, String, Int, Int},OHLCV}()
+const ohlcv_v_load = Dict{Tuple{DataType, String, String, Int, Int},OHLCV_v}()
 
-macro ohlcv_str(candle)
-	global ctx
-	fr, to, market = first(ctx.timestamps), last(ctx.timestamps), ctx.market
-	d = load(OHLCV, market, candle, fr, to)
-	postprocess_ohlcv!(d)
+get_ohlcv(candle, context=ctx) = begin
+	fr, to, market = first(context.timestamps), last(context.timestamps), context.market
+	key = (OHLCV, market, candle, fr, to)
+	d = key in keys(ohlcv_load) ? ohlcv_load[key] : (ohlcv_load[key] = ((x=load(OHLCV, market, candle, fr, to)); postprocess_ohlcv!(x);x))
+	# d = @memoize_typed OHLCV load(OHLCV, market, candle, fr, to)
 	d
 end
+macro ohlcv_str(candle); get_ohlcv(candle); end
 
-
-macro ohlcv_v_str(candle)
-	global ctx
-	fr, to, market = first(ctx.timestamps_v), last(ctx.timestamps_v), ctx.market
-	d = @memoize_typed OHLCV_v load(OHLCV_v, market, candle, fr, to)
-	postprocess_ohlcv!(d)
+get_ohlcv_v(candle, context=ctx) = begin
+	fr, to, market = first(context.timestamps_v), last(context.timestamps_v), context.market
+	key = (OHLCV_v, market, candle, fr, to)
+	d = key in keys(ohlcv_v_load) ? ohlcv_v_load[key] : (ohlcv_v_load[key] = ((x=load(OHLCV_v, market, candle, fr, to)); postprocess_ohlcv!(x);x))
+	# d = @memoize_typed OHLCV_v load(OHLCV_v, market, candle, fr, to)
 	d
 end
+macro ohlcv_v_str(candle); get_ohlcv_v(candle); end
 					
 
 # include("CryptoOHLCVFns.jl")

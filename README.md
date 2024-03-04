@@ -16,7 +16,7 @@ d = ohlcv_v"tick500"
 
 Basically you can get the timeframe data anytime.
 
-To configure your dataset you have to set the `Config`
+To configure your dataset you have to set the `OHLCVConfig`
 
 ```julia
 using CryptoOHLCV
@@ -24,9 +24,9 @@ ctx.market   = "binance:BNB_BTC:futures"
 ctx.dayframe = 0:2
 ```
 
-`ctx` is a Config struct, the important things are: 
+`ctx` is a OHLCVConfig struct, the important things are: 
 ```julia
-@kwdef mutable struct Config
+@kwdef mutable struct OHLCVConfig
   use_cache::Bool   = true 
   market::String    ="binance:BTC_USDT:futures"
 	dayframe::UnitRange{Int}     = 30:41

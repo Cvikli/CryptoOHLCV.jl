@@ -113,6 +113,5 @@ postprocess_ohlcv!(o::T) where T <: CandleType = if o.candle_type in
 		@assert o.candle_value>=60 "We cannot handle things under 1min(60s) d.candle_value=$(o.candle_value)"
 		metric_round = cld(o.candle_value,60)
 		o.o, o.h, o.l, o.c, o.v, o.ts = combine_klines_fast(o, metric_round)
-
-		@assert  all(o.ts[2:end] .- o.ts[1:end-1] .== o.candle_value*1000) "$(o.ts[2:end] .- o.ts[1:end-1])"
+		@assert  all(o.ts[2:end] .- o.ts[1:end-1] .== o.candle_value*1000) "$(o.ts[2:end] .- o.ts[1:end-1])  ?== $(o.candle_value*1000)"
 	end
