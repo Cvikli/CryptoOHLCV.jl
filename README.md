@@ -36,11 +36,20 @@ ctx.dayframe = 0:2
   maximum_candle_size::Int     = 3600
   data_path::String = "./data"
 end
- ```
+```
 So the key is to  define the data accurately ranges => Then query with different market/timeframe/spot&futures or even exchanges(by CCXT later on). 
 
 
+LIVE trading...
+```julia
+d = ohlcv"1h"
 
+stop_LIVE_data(d) 
+start_LIVE_data(d)
+
+trade_on_notify() #  function that shows the pattern where you can implement the trading 
+
+```
 
 # Features
 - It handles different timeframes
@@ -56,8 +65,9 @@ So the key is to  define the data accurately ranges => Then query with different
 
 
 # TODO:
-- We have to implement the "LIVE" feature. so the data would be always addressing the "from:LIVE" range. VERY easy to do... so later on!
+- "LIVE" feature is ready but we coud add the "from:LIVE" range. VERY easy to do... so later on!
 - use this: https://github.com/baggepinnen/SignalAlignment.jl
+- need to handle multiple slices... also recognize gaps and create slices...
 
 # Any advice is appreciated!
 
