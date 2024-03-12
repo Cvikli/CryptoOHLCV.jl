@@ -1,14 +1,16 @@
 
 
 # init_now_ts::Int=1706_542_899  #_562    # 2024-01-29T15:41:39.562   DateTime("2024-01-29T15:41:39.562")
-init_now_ts::Int=1707_132_143  #_562    # 2024-01-29T15:41:39.562   DateTime("2024-01-29T15:41:39.562")
+# init_now_ts::Int=1707_132_143  #_562    # 2024-01-29T15:41:39.562   DateTime("2024-01-29T15:41:39.562")
+init_now_ts::Int=1709739603  #_562  	  # 2024-03-06T15   DateTime("2024-01-29T15:41:39.562")
 
 module_directory = string(string(@__FILE__)[1:end-14]) # hardcoded... so basically we cut the "/src/Config.jl"
 
-# TODO LIVE... so "from_timestamp" -> "now()"
+# TODO LIVE... so "from_timestamp" -> "datetime2unix(now())"
 @kwdef mutable struct OHLCVConfig
-	use_cache::Bool   = true 
-	# use_cache::Bool   = false 
+
+	# use_cache::Bool   = true 
+	use_cache::Bool   = false 
 
 	market::String    ="binance:BTC_USDT:futures"
 
@@ -24,7 +26,7 @@ module_directory = string(string(@__FILE__)[1:end-14]) # hardcoded... so basical
   
 	min_max_move::Float32     = 0.002f0   # 0.2% maxdiff
 
-	floor_instead_of_ceil     = true  # We prefer the first hour too. So when we request 1 day of 1h then we get 24  1h candle.
+	# floor_instead_of_ceil     = true  # We prefer the first hour too. So when we request 1 day of 1h then we get 24  1h candle.
 
 	data_path::String = module_directory*"/data/"
 end
