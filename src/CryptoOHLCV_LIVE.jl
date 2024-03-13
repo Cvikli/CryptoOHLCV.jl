@@ -8,7 +8,7 @@ are_there_gap!(c::C, new_ts::Int64,       time_frame) where C <: CandleType = be
 		@info "GAP in the system: $(c_tsend) - $(new_ts) -> $((new_ts - c_tsend) / CANDLE_TO_MS[time_frame])"
 		@info "We are filling it."
 		# +CANDLE_TO_MS["1m"]
-		miss = UniversalStruct.load(C, reconstruct_src(c), time_frame, cld(c.t[end],1000), floor_ts(floor(Int,new_ts/1_000),60))
+		miss = UniversalStruct.load(C, :validation, c.exchange, c.market, c.is_futures, c.candle_type, c.candle_value, cld(c.t[end],1000), floor_ts(floor(Int,new_ts/1_000),60))
 		postprocess_ohlcv!(miss)
 		(length(miss.c) > 0) && append!(c, miss)
 	end

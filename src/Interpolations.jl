@@ -30,7 +30,7 @@ function interpolate_missing(data::NTuple{5, Vector{T}}, basis, basis_step, meth
 		end
 		last_pos = pos
 	end
-	@sizes new_data
+	@sizes new_data, misses
 	new_data, misses, basis[1]:basis_step:basis[end]
 end
 function interpolate_missing(data::Matrix{T}, basis::Vector{Int}, basis_step, method=:linear) where T

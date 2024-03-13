@@ -20,19 +20,19 @@ To configure your dataset you have to set the `OHLCVConfig`
 
 ```julia
 using CryptoOHLCV
-ctx.market   = "binance:BNB_BTC:futures"
-ctx.dayframe = 0:2
+ctx.exchange    = "binance"
+ctx.market      = "BTC_USDT"
+ctx.is_futures  = false
+ctx.dayframe    = 0:2
 ```
 
 `ctx` is a OHLCVConfig struct, the important things are: 
 ```julia
 @kwdef mutable struct OHLCVConfig
   use_cache::Bool   = true 
-  market::String    ="binance:BTC_USDT:futures"
+  source::String    ="binance:BTC_USDT:futures"
 	dayframe::UnitRange{Int}     = 30:41
-	dayframe_v::UnitRange{Int}   = 50:60
 	timestamps::UnitRange{Int}   = -1:-1
-	timestamps_v::UnitRange{Int} = -1:-1
   maximum_candle_size::Int     = 3600
   data_path::String = "./data"
 end

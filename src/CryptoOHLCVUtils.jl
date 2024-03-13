@@ -2,7 +2,6 @@
 
 
 print_file(o::OHLCV)   = println("$(get_filename(o)) train: $(unix2datetime(first(o.timestamps))) -> $(unix2datetime(last(o.timestamps)))")
-print_file(o::OHLCV_v) = println("$(get_filename(o)) valid: $(unix2datetime(first(o.timestamps))) -> $(unix2datetime(last(o.timestamps)))")
 
 
 # ceil_ts( ts, cv, context) = (m =  ts%max(cv, context.maximum_candle_size);  m>0 ? ts-m+max(cv, context.maximum_candle_size) : ts)

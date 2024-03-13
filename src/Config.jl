@@ -12,21 +12,19 @@ module_directory = string(string(@__FILE__)[1:end-14]) # hardcoded... so basical
 	# use_cache::Bool   = true 
 	use_cache::Bool   = false 
 
-	market::String    ="binance:BTC_USDT:futures"
+	exchange::String    = "binance"
+	market::String      = "BTC_USDT"
+	is_futures::Bool    = false
 
 	dayframe::UnitRange{Int}     = 0:42
-	dayframe_v::UnitRange{Int}   = 42:84
 	timestamps::UnitRange{Int}   = -1:-1
-	timestamps_v::UnitRange{Int} = -1:-1
-
+	
 	now_ts::Int       = init_now_ts          
 	now_dt::DateTime  = unix2datetime(init_now_ts) 
 
 	maximum_candle_size::Int  = 3600
   
 	min_max_move::Float32     = 0.002f0   # 0.2% maxdiff
-
-	# floor_instead_of_ceil     = true  # We prefer the first hour too. So when we request 1 day of 1h then we get 24  1h candle.
 
 	data_path::String = module_directory*"/data/"
 end
@@ -35,12 +33,12 @@ ctx::OHLCVConfig = OHLCVConfig()
 
 Base.setproperty!(a::OHLCVConfig, s::Symbol, v) = begin
 	getfield(a,s) == v && return v
-	if s in [:timestamps, :timestamps_v]
+	if s in [:timestamps]
 		# get_cutters_minute_correction(OHLCV_all, 1)
 		println("Current  range $(join(string.(date_range(first(getfield(a,s)), last(getfield(a,s))))," - "))")
 		println("Updating to    $(join(string.(date_range(first(v),             last(v)))," - "))")
 	end
-	if s in [:dayframe, :dayframe_v, ]
+	if s in [:dayframe,]
 		# get_cutters_minute_correction(OHLCV_all, 1)
 		println("Current  range $(join(string.(date_range(Δday2ts(last(getfield(a,s))), Δday2ts(first(getfield(a,s)))))," - "))")
 		println("Updating to    $(join(string.(date_range(Δday2ts(last(v)),             Δday2ts(first(v))))," - "))")
@@ -49,9 +47,8 @@ Base.setproperty!(a::OHLCVConfig, s::Symbol, v) = begin
 	s==:now_ts       && setfield!(a, :now_dt,       unix2datetime(v))
 	s==:now_dt       && setfield!(a, :now_ts,       floor(Int,datetime2unix(v)))
 	s==:timestamps   && setfield!(a, :dayframe,     ts2Δday(last(v)):ts2Δday(first(v)))
-	s==:timestamps_v && setfield!(a, :dayframe_v,   ts2Δday(last(v)):ts2Δday(first(v)))
 	s==:dayframe     && setfield!(a, :timestamps,   Δday2ts(last(v)):Δday2ts(first(v)))
-	s==:dayframe_v   && setfield!(a, :timestamps_v, Δday2ts(last(v)):Δday2ts(first(v)))
+	# s==:LIVE         && (setfield!(a, :timestamps,   floor(Int,datetime2unix(now()))))
 	v
 end
 
@@ -62,12 +59,11 @@ ts2Δday(ts)    = (Day(ctx.now_dt) - Day(unix2datetime(ts))).value
 initConfig(ctx::OHLCVConfig) = begin
 	ctx.now_dt      = unix2datetime(ctx.now_ts) 
 	setfield!(ctx, :timestamps,   Δday2ts(last(ctx.dayframe)):  Δday2ts(first(ctx.dayframe)))
-	setfield!(ctx, :timestamps_v, Δday2ts(last(ctx.dayframe_v)):Δday2ts(first(ctx.dayframe_v)))
 
-	@assert !(first(ctx.timestamps) < first(ctx.timestamps_v) < last(ctx.timestamps) || 
-						first(ctx.timestamps) < last(ctx.timestamps_v)  < last(ctx.timestamps_v)) "There are interleaving data between train and validation set... Train: $(ctx.timestamps)  and Validation: $(ctx.timestamps_v)"
+	# @assert !(first(ctx.timestamps) < first(ctx.timestamps_v) < last(ctx.timestamps) || 
+	# 					first(ctx.timestamps) < last(ctx.timestamps_v)  < last(ctx.timestamps_v)) "There are interleaving data between train and validation set... Train: $(ctx.timestamps)  and Validation: $(ctx.timestamps_v)"
 end
-train_valid_ratio() = length(ctx.timestamps)/(length(timestamps)+length(timestamps_v))
+# train_valid_ratio() = length(ctx.timestamps)/(length(timestamps)+length(timestamps_v))
 
 
 initConfig(ctx)
