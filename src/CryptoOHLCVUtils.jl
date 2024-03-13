@@ -2,11 +2,12 @@
 
 
 print_file(o::OHLCV)   = println("$(get_filename(o)) train: $(unix2datetime(first(o.timestamps))) -> $(unix2datetime(last(o.timestamps)))")
-print_file(o::OHLCV_v) = println("$(get_filename(o)) valid: $(unix2datetime(first(o.timestamps))) -> $(unix2datetime(last(o.timestamps)))")
 
 
-ceil_ts( ts, mv) = (m = ts%max(mv, ctx.maximum_candle_size); ctx.floor_instead_of_ceil ? ts - m :  m>0 ? ts-m+max(mv, ctx.maximum_candle_size) : ts)
-floor_ts(ts, mv) = ts - (ts%max(mv, ctx.maximum_candle_size))-1
+# ceil_ts( ts, cv, context) = (m =  ts%max(cv, context.maximum_candle_size);  m>0 ? ts-m+max(cv, context.maximum_candle_size) : ts)
+# floor_ts(ts, cv, context) = ts - (ts%max(cv, context.maximum_candle_size))
+ceil_ts( ts, cv) = (m =  ts%cv;  m>0 ? ts-m+cv : ts)
+floor_ts(ts, cv) = ts - (ts%cv)
 
 
 isfutures_str(isfutures::String) = isfutures=="F" ? true : false
@@ -33,41 +34,41 @@ end
 
 
 
-combine_klines!(o,h,l,c,v,ts, fr::Int, to::Int) = begin
+combine_klines!(o,h,l,c,v,t, fr::Int, to::Int) = begin
   high, low, vol = h[fr], l[fr], v[fr]
   for i in fr+1:to
     high < h[i] && (high = h[i])
     low  > l[i] && (low  = l[i])
     vol += v[i]
   end
-  o[fr], high, low, c[to], vol, ts[to]
+  o[fr], high, low, c[to], vol, t[fr]
 end
 combine_klines_fast(ohlcv, window, offset=0) = begin
-	o,h,l,c,v,ts = ohlcv.o,ohlcv.h,ohlcv.l,ohlcv.c,ohlcv.v,ohlcv.ts
-  window == 1 && return o,h,l,c,v,ts
+	o,h,l,c,v,t = ohlcv.o,ohlcv.h,ohlcv.l,ohlcv.c,ohlcv.v,ohlcv.t
+  window == 1 && return o,h,l,c,v,t
   inds = 1+offset:window:size(o, 1) - window + 1
-  new_o  = Vector{eltype(o )}(undef, length(inds))
-  new_h  = Vector{eltype(o )}(undef, length(inds))
-  new_l  = Vector{eltype(o )}(undef, length(inds))
-  new_c  = Vector{eltype(o )}(undef, length(inds))
-  new_v  = Vector{eltype(o )}(undef, length(inds))
-  new_ts = Vector{eltype(ts)}(undef, length(inds))
+  new_o  = Vector{eltype(o)}(undef, length(inds))
+  new_h  = Vector{eltype(o)}(undef, length(inds))
+  new_l  = Vector{eltype(o)}(undef, length(inds))
+  new_c  = Vector{eltype(o)}(undef, length(inds))
+  new_v  = Vector{eltype(o)}(undef, length(inds))
+  new_ts = Vector{eltype(t)}(undef, length(inds))
   for (j, i) in enumerate(inds)
-    new_o[j],new_h[j],new_l[j],new_c[j],new_v[j],new_ts[j] = combine_klines!(o,h,l,c,v,ts, i, i+window-1)
+    new_o[j],new_h[j],new_l[j],new_c[j],new_v[j],new_ts[j] = combine_klines!(o,h,l,c,v,t, i, i+window-1)
   end
   new_o, new_h, new_l, new_c, new_v, new_ts
 end
 combine_klines_fast_tick(ohlcv, window, ::Val{:TICK}, offset=0) = begin
-	o,h,l,c,v,ts = ohlcv.o,ohlcv.h,ohlcv.l,ohlcv.c,ohlcv.v,ohlcv.ts
-  window == 1 && return o,h,l,c,v,ts
+	o,h,l,c,v,t = ohlcv.o,ohlcv.h,ohlcv.l,ohlcv.c,ohlcv.v,ohlcv.t
+  window == 1 && return o,h,l,c,v,t
 	max_len = length(o)
 	ass_len = cld(length(o), window)
-  new_o  = Vector{eltype(o )}(undef, ass_len)
-  new_h  = Vector{eltype(o )}(undef, ass_len)
-  new_l  = Vector{eltype(o )}(undef, ass_len)
-  new_c  = Vector{eltype(o )}(undef, ass_len)
-  new_v  = Vector{eltype(o )}(undef, ass_len)
-  new_ts = Vector{eltype(ts)}(undef, ass_len)
+  new_o  = Vector{eltype(o)}(undef, ass_len)
+  new_h  = Vector{eltype(o)}(undef, ass_len)
+  new_l  = Vector{eltype(o)}(undef, ass_len)
+  new_c  = Vector{eltype(o)}(undef, ass_len)
+  new_v  = Vector{eltype(o)}(undef, ass_len)
+  new_ts = Vector{eltype(t)}(undef, ass_len)
 	i = 2
 	j = 0
 	while i < max_len
@@ -82,7 +83,7 @@ combine_klines_fast_tick(ohlcv, window, ::Val{:TICK}, offset=0) = begin
 			i+=1
 			bi+= 1
 		end
-    new_h[j],new_l[j],new_c[j],new_v[j],new_ts[j] = high, low, c[i-1], vol, ts[i-1]
+    new_h[j],new_l[j],new_c[j],new_v[j],new_ts[j] = high, low, c[i-1], vol, t[i-1]
   end
   new_o[1:j], new_h[1:j], new_l[1:j], new_c[1:j], new_v[1:j], new_ts[1:j]
 end

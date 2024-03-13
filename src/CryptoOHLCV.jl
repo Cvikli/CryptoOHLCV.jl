@@ -3,9 +3,11 @@ module CryptoOHLCV
 
 using Revise
 using Boilerplate
+using Boilerplate: @async_showerr
 
-using BinanceAPI: query_klines, query_ticks, initialize_binance, marketdata2ohlcvt
+using BinanceAPI: query_klines, query_ticks, initialize_binance, marketdata2ohlcvt, get_stream_url, CANDLE_TO_MS
 using Dates
+using Base: Event, notify, reset
 
 
 export @ohlcv_str, @ohlcv_v_str, ctx, CandleType
@@ -18,6 +20,9 @@ include("Config.jl")
 
 using Base: @kwdef
 
+using HTTP
+using JSON
+
 using MemoizeTyped
 using UniversalStruct
 
@@ -26,87 +31,63 @@ using UniversalStruct
 abstract type CandleType <: Universal end
 
 
-
 @kwdef mutable struct OHLCV <: CandleType
+	set::Symbol         
 	exchange::String    = ""
 	market::String      = ""
 	is_futures::Bool    = false
 	candle_type::Symbol = :UNKNOWN   # :TICK, :SECOND, :MINUTE, :HOUR, :DAY
 	candle_value::Int   = -1
 	timestamps::UnitRange{Int} = UnitRange{Int}(first(ctx.timestamps),last(ctx.timestamps))
+	
+	data_path::String   = ctx.data_path
 
 	misses::Vector{UnitRange}  = UnitRange{Int}[]
 
-	ts::Vector{Int}     = Int[]
-	o::Vector{Float32}  = Float32[]
-	h::Vector{Float32}  = Float32[]
-	l::Vector{Float32}  = Float32[]
-	c::Vector{Float32}  = Float32[]
-	v::Vector{Float32}  = Float32[]
-end
-@kwdef mutable struct OHLCV_v <: CandleType  # for validation to make sure we don't make mistakes!
-	exchange::String    = ""
-	market::String      = ""
-	is_futures::Bool    = false
-	candle_type::Symbol = :UNKNOWN   # :TICK, :SECOND, :MINUTE, :HOUR, :DAY
-	candle_value::Int   = -1
-	timestamps::UnitRange{Int} = UnitRange{Int}(first(ctx.timestamps_v),last(ctx.timestamps_v))
+	t::Vector{Int}     = Int[]
+	o::Vector{Float32} = Float32[]
+	h::Vector{Float32} = Float32[]
+	l::Vector{Float32} = Float32[]
+	c::Vector{Float32} = Float32[]
+	v::Vector{Float32} = Float32[]
 
-	misses::Vector{UnitRange}  = UnitRange{Int}[]
-
-	ts::Vector{Int}     = Int[]
-	o::Vector{Float32}  = Float32[]
-	h::Vector{Float32}  = Float32[]
-	l::Vector{Float32}  = Float32[]
-	c::Vector{Float32}  = Float32[]
-	v::Vector{Float32}  = Float32[]
+	LIVE::Bool         = false
+	used::Event        = Event()
 end
 
-set(::OHLCV)   = :TRAIN
-set(::OHLCV_v) = :VALIDATION
 
-date_range(ohlcv::T) where T <: CandleType = date_range(first(ohlcv.timestamps),last(ohlcv.timestamps)) # format(DateTime(first(ohlcv.ts)), "yyyy.mm.dd HH:MM")
-splatt(ohlcv::T)     where T <: CandleType = (ohlcv.o,ohlcv.h,ohlcv.l,ohlcv.c,ohlcv.v,ohlcv.ts)
+date_range(ohlcv::T)    where T <: CandleType = date_range(first(ohlcv.timestamps),last(ohlcv.timestamps)) # format(DateTime(first(ohlcv.t)), "yyyy.mm.dd HH:MM")
+splatt(ohlcv::T)        where T <: CandleType = (ohlcv.o,ohlcv.h,ohlcv.l,ohlcv.c,ohlcv.v,ohlcv.t)
 splatt_notime(ohlcv::T) where T <: CandleType = (ohlcv.o,ohlcv.h,ohlcv.l,ohlcv.c,ohlcv.v)
 
-fix_type(d::OHLCV_v, ::Type{OHLCV_v}) = d
-fix_type(d::OHLCV,   ::Type{OHLCV})   = d
-fix_type(d::OHLCV,   ::Type{OHLCV_v}) = OHLCV_v(d.exchange, d.market, d.is_futures, d.candle_type, d.candle_value, d.timestamps,
-																								d.misses, d.ts, d.o,d.h,d.l,d.c,d.v)
-fix_type(d::OHLCV_v, ::Type{OHLCV})   = OHLCV(d.exchange, d.market, d.is_futures, d.candle_type, d.candle_value, d.timestamps,
-																							d.misses, d.ts, d.o,d.h,d.l,d.c,d.v)
-														
 
-
-UniversalStruct.load(TYPE, args...; kw_args...) = @show "HEYEEcqEE"
 
 include("CryptoOHLCVUtils.jl")
+include("CryptoOHLCV_Memoizable.jl")
 include("CryptoOHLCV_InitLoad.jl")
 include("CryptoOHLCV_Extend.jl")
 include("CryptoOHLCV_Persist.jl")
 
-UniversalStruct.load(TYPE, args...; kw_args...) = @show "HEYEE	EE"
+const ohlcv_load = Dict{Tuple{DataType, Symbol, String, String, Bool, Symbol, Int, Int, Int},OHLCV}()
 
-macro ohlcv_str(candle)
-	global ctx
-	fr, to, market = first(ctx.timestamps), last(ctx.timestamps), ctx.market
-	d = load(OHLCV, market, candle, fr, to)
-	postprocess_ohlcv!(d)
+get_ohlcv(source, context=ctx) = begin
+	key = unique_key(OHLCV, :TRAIN, source, context)
+	d = key in keys(ohlcv_load) ? ohlcv_load[key] : (ohlcv_load[key] = ((x=load(key...)); postprocess_ohlcv!(x); x))
+	# d = @memoize_typed OHLCV load(OHLCV, market, candle, fr, to)
 	d
 end
+macro ohlcv_str(source); get_ohlcv(source); end
 
-UniversalStruct.load(TYPE, args...; kw_args...) = @show "HEYEEEE"
-
-macro ohlcv_v_str(candle)
-	global ctx
-	fr, to, market = first(ctx.timestamps_v), last(ctx.timestamps_v), ctx.market
-	d = @memoize_typed OHLCV_v load_v(OHLCV_v, market, candle, fr, to)
-	postprocess_ohlcv!(d)
+get_ohlcv_v(source, context=ctx) = begin
+	key = unique_key(OHLCV, :VALIDATION, source, context)
+	d = key in keys(ohlcv_load) ? ohlcv_load[key] : (ohlcv_load[key] = ((x=load(key...)); postprocess_ohlcv!(x); x))
+	# d = @memoize_typed OHLCV_v load(OHLCV_v, market, candle, fr, to)
 	d
 end
+macro ohlcv_v_str(source); get_ohlcv_v(source); end
 					
+include("CryptoOHLCV_LIVE.jl")
 
-# include("CryptoOHLCVFns.jl")
 
 
 end # module CryptoOHLCV
