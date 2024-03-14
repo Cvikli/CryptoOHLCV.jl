@@ -26,12 +26,12 @@ live_data_streaming(c::C) where C <: CandleType = begin
 
 	url = get_stream_url(market_lowcase, candle)
 	while c.LIVE
-		HTTP.WebSockets.open(url) do ws 
-			println("Listening on Binance $(market_lowcase) $candle")
-			display([c.h[end-2:end] c.l[end-2:end] c.c[end-2:end] c.v[end-2:end]])
-			display(unix2datetime.(c.t[end-2:end]./1000))
-			println("RUNNING!")
-			try
+		try
+			HTTP.WebSockets.open(url) do ws 
+				println("Listening on Binance $(market_lowcase) $candle")
+				display([c.h[end-2:end] c.l[end-2:end] c.c[end-2:end] c.v[end-2:end]])
+				display(unix2datetime.(c.t[end-2:end]./1000))
+				println("RUNNING!")
 				for dd in ws #!eof(ws);
 					c.LIVE==false && break
 					rd = JSON.parse(String(dd))
@@ -53,15 +53,17 @@ live_data_streaming(c::C) where C <: CandleType = begin
 						# update and REACT!
 					end
 				end
-			catch e
-				showerror(stdout, e, catch_backtrace())
-				if e == EOFError
-					@info "EOFError!! We continue the RUN, but this is not nice!" # EOFError: read end of file
-					# elseif e == IOError
-					# 	@info "IOError!! We continue the RUN, but this is not nice!" # IOError: read end of file
-				else
-					rethrow(e)
-				end
+			end
+		catch e
+			showerror(stdout, e, catch_backtrace())
+			if e == DNSError
+				@show e
+			elseif e == EOFError
+				@info "EOFError!! We continue the RUN, but this is not nice!" # EOFError: read end of file
+				# elseif e == IOError
+				# 	@info "IOError!! We continue the RUN, but this is not nice!" # IOError: read end of file
+			else
+				rethrow(e)
 			end
 		end
 	end
