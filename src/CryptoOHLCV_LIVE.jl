@@ -23,6 +23,7 @@ live_data_streaming(c::C) where C <: CandleType = begin
 	# candle = "1m"
 
 	are_there_gap!(c, datetime2unix(now(UTC))*1000, candle)
+	notify(c.used)
 
 	url = get_stream_url(market_lowcase, candle)
 	while c.LIVE
@@ -56,10 +57,10 @@ live_data_streaming(c::C) where C <: CandleType = begin
 			end
 		catch e
 			showerror(stdout, e, catch_backtrace())
-			if e == DNSError
-				@show e
-			elseif e == EOFError
+			if e == EOFError
 				@info "EOFError!! We continue the RUN, but this is not nice!" # EOFError: read end of file
+			elseif e == DNSError
+				@show e
 				# elseif e == IOError
 				# 	@info "IOError!! We continue the RUN, but this is not nice!" # IOError: read end of file
 			else
