@@ -17,19 +17,31 @@ candle2metric(candle) = Dict("1m" => 60, "5m" => 300, "15m" => 900, "30m" => 180
 metric2candle(metric) = Dict(60 => "1m", 300 => "5m", 900 => "15m", 1800 => "30m", 1 => "1s", 2 => "2s", 5 => "5s", 15 => "15s", 3600 => "1h", 0=>"tick")[metric]
 
 
-norm_data!(ohlcv,avg) = begin
-  ohlcv.o ./= avg
-  ohlcv.h ./= avg
-  ohlcv.l ./= avg
-  ohlcv.c ./= avg
+normalize(meaner::MeanNorm, ohlcv, ) = begin
+  new_ohlcv = deepcopy(ohlcv)
+  norm!(meaner, new_ohlcv.o)
+  norm!(meaner, new_ohlcv.h)
+  norm!(meaner, new_ohlcv.l)
+  norm!(meaner, new_ohlcv.c)
+  new_ohlcv
 end
-normalize!(ohlcv) = norm_data!(ohlcv,sum(ohlcv.c)/length(ohlcv.c))
-normalize!(ohlcv, ohlcv_v) = begin
-  avg = (sum(ohlcv.c)+sum(ohlcv_v.c)) ./ (length(ohlcv.c)+length(ohlcv_v.c))
-  norm_data!(ohlcv, avg), norm_data!(ohlcv_v, avg)
-  avg
+normalize(ohlcv::OHLCV) = begin
+  normer = MeanNorm(sum(ohlcv.c)/length(ohlcv.c))
+  normalize(normer, ohlcv)
 end
-
+normalize(ohlcv::OHLCV, ohlcv_v) = begin
+  mean = (sum(ohlcv.c)+sum(ohlcv_v.c)) ./ (length(ohlcv.c)+length(ohlcv_v.c))
+  normer = MeanNorm(mean)
+  normalize(normer, ohlcv), normalize(normer, ohlcv_v), normer
+end
+unnormalize(ohlcv,meaner::MeanNorm) = begin
+  new_ohlcv = deepcopy(ohlcv)
+  denorm!(meaner, new_ohlcv.o)
+  denorm!(meaner, new_ohlcv.h)
+  denorm!(meaner, new_ohlcv.l)
+  denorm!(meaner, new_ohlcv.c)
+  new_ohlcv
+end
 
 
 

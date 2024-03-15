@@ -15,8 +15,11 @@ are_there_gap!(c::C, new_ts::Int64,       time_frame) where C <: CandleType = be
 end
 
 stop_LIVE_data(c::C)  where C <: CandleType =  c.LIVE=false
-start_LIVE_data(c::C) where C <: CandleType = (c.LIVE=true ; @async_showerr live_data_streaming(c))
-live_data_streaming(c::C) where C <: CandleType = begin
+function start_LIVE_data(c::C) where C <: CandleType
+	 c.LIVE=true
+	 @async_showerr live_data_streaming(c)
+end
+function live_data_streaming(c::C) where C <: CandleType
 	market_lowcase = lowercase(replace(c.market, "_" => ""))
 	candle = reverse_parse_candle(c)
 	# @assert false "1m-ben szedjük akkor... ezt majd ..."
