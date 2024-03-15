@@ -2,10 +2,6 @@
 struct MeanNorm
   mean
 end
-function denorm(norm::MeanNorm, y)
-  y .*= norm.mean
-end
-function norm(normer::MeanNorm, x) 
-  x ./ normer.mean
-end
-norm!(normer::MeanNorm, x) = x ./= normer.mean
+denorm!(normer::MeanNorm, y) = y .*= normer.mean
+norm!(  normer::MeanNorm, x) = x ./= normer.mean
+norm(   normer::MeanNorm, x) = x ./  normer.mean
