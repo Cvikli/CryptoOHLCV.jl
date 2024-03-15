@@ -21,6 +21,7 @@ include("Config.jl")
 using Base: @kwdef
 
 using HTTP
+using HTTP.Exceptions: ConnectError
 using JSON
 
 using MemoizeTyped

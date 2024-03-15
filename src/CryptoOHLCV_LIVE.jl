@@ -29,6 +29,8 @@ function live_data_streaming(c::C) where C <: CandleType
 	notify(c.used)
 
 	url = get_stream_url(market_lowcase, candle)
+	repetition=0
+	max_repetition=5
 	while c.LIVE
 		try
 			HTTP.WebSockets.open(url) do ws 
@@ -51,6 +53,7 @@ function live_data_streaming(c::C) where C <: CandleType
 						c.v = [c.v; parse(Float32, d["v"])]
 						c.t = [c.t; [ts]]
 						@show d
+						repetition=0
 						notify(c.used)
 					else
 						# @show d
@@ -62,6 +65,9 @@ function live_data_streaming(c::C) where C <: CandleType
 			showerror(stdout, e, catch_backtrace())
 			if e == EOFError
 				@info "EOFError!! We continue the RUN, but this is not nice!" # EOFError: read end of file
+			elseif e == ConnectError && repetition < max_repetition
+				repetition+=1
+				@show "ConnectError!! We restart it! Repetition $repetition/$max_repetition."
 			elseif e == DNSError
 				@show e
 				# elseif e == IOError
