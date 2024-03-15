@@ -62,6 +62,7 @@ splatt_notime(ohlcv::T) where T <: CandleType = (ohlcv.o,ohlcv.h,ohlcv.l,ohlcv.c
 
 
 
+include("Normalizer.jl")
 include("CryptoOHLCVUtils.jl")
 include("CryptoOHLCV_Memoizable.jl")
 include("CryptoOHLCV_InitLoad.jl")
