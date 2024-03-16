@@ -80,14 +80,15 @@ postprocess_ohlcv!(o::T) where T <: CandleType = if o.candle_type in
 
 		@assert o.candle_value>=60 "We cannot handle things under 1min(60s) d.candle_value=$(o.candle_value)"
 		fr     = first(o.timestamps)
-		offset = cld(ceil_ts(fr, o.candle_value)-fr,60)
+		# @show ceil_ts(fr, o.candle_value)-fr
+		offset = cld(ceil_ts(fr, o.candle_value)-ceil_ts(fr,60),60)
 		metric_round = cld(o.candle_value,60)
 		# cut_data_1m!(o, c)
 
-		# floor_ts(to, candle_value, ctxt)
 		# @display [unix2datetime.(floor.([Int64], o.t ./ 1000)) o.c]
 		@assert  all(o.t[2:end] .- o.t[1:end-1] .== 60*1000) "$(o.t[2:end] .- o.t[1:end-1])  ?== $(60*1000)"
 		o.o, o.h, o.l, o.c, o.v, o.t = combine_klines_fast(o, metric_round, offset)
 		# @display [unix2datetime.(floor.([Int64], o.t ./ 1000)) o.c]
 		@assert  all(o.t[2:end] .- o.t[1:end-1] .== o.candle_value*1000) "$(o.t[2:end] .- o.t[1:end-1])  ?== $(o.candle_value*1000)"
 	end
++	

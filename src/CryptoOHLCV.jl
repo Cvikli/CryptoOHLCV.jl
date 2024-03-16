@@ -17,6 +17,7 @@ include("Consts.jl")
 include("Utils.jl")
 include("Interpolations.jl")
 include("Config.jl")
+include("Normalizer.jl")
 
 using Base: @kwdef
 
@@ -60,10 +61,14 @@ end
 date_range(ohlcv::T)    where T <: CandleType = date_range(first(ohlcv.timestamps),last(ohlcv.timestamps)) # format(DateTime(first(ohlcv.t)), "yyyy.mm.dd HH:MM")
 splatt(ohlcv::T)        where T <: CandleType = (ohlcv.o,ohlcv.h,ohlcv.l,ohlcv.c,ohlcv.v,ohlcv.t)
 splatt_notime(ohlcv::T) where T <: CandleType = (ohlcv.o,ohlcv.h,ohlcv.l,ohlcv.c,ohlcv.v)
+Base.getindex(ohlcv::OHLCV, rang::UnitRange{Int64}) = begin
+	ex,market,fut = reconstruct_src(ohlcv)
+	candle = reverse_parse_candle(ohlcv)
+	d = get_ohlcv("$ex:$market@$(candle)$fut|$(first(rang))-$(last(rang))")
+	d.set = ohlcv.set
+	d
+end
 
-
-
-include("Normalizer.jl")
 include("CryptoOHLCVUtils.jl")
 include("CryptoOHLCV_Memoizable.jl")
 include("CryptoOHLCV_InitLoad.jl")

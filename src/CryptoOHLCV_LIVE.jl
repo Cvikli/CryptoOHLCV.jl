@@ -63,12 +63,12 @@ function live_data_streaming(c::C) where C <: CandleType
 			end
 		catch e
 			showerror(stdout, e, catch_backtrace())
-			if e == EOFError
+			if isa(e, EOFError)
 				@info "EOFError!! We continue the RUN, but this is not nice!" # EOFError: read end of file
-			elseif e == ConnectError && repetition < max_repetition
+			elseif isa(e, ConnectError) && repetition < max_repetition
 				repetition+=1
 				@show "ConnectError!! We restart it! Repetition $repetition/$max_repetition."
-			elseif e == DNSError
+			elseif isa(e, DNSError)
 				@show e
 				# elseif e == IOError
 				# 	@info "IOError!! We continue the RUN, but this is not nice!" # IOError: read end of file

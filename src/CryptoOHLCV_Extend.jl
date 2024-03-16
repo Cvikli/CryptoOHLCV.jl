@@ -49,23 +49,24 @@ cut_data_1m!(o, c) = begin
 	c_fr       = cld(c.t[1],1000) # first(c.timestamps)
 
 	offset = cld(o_fr - c_fr, min_candle_value)
-	endset = cld(o_to - c_fr, min_candle_value)
+	endset = cld(o_to - o_to%min_candle_value - c_fr, min_candle_value)
 	# @show first(c.timestamps)%min_candle_value
 	# @show o.timestamps
 	# @show c.timestamps
 	# @show c.t[end-30:end]
-	# @display unix2datetime.(c.t[end-30:end]./1000)
+	# @display unix2datetime.(c.t[end-7:end]./1000)
 	# @show (c.t[1])
 	# @show (c.t[offset])
 	# @show (c.t[end])
 	# @show (1640619660-c_fr)
 	# @show (c.t[offset])
 	# @show (c.t[end])
-	# @display unix2datetime(1640619603)
-	# @display unix2datetime(1709594063)
-	# @display unix2datetime(1710458063)
+	# @show unix2datetime(c_fr)
+	# @show unix2datetime(o_fr)
+	# @show unix2datetime(o_to)
 	# @show unix2datetime(c.t[1]./1000)
-	# @show unix2datetime(c.t[offset]./1000)
+	# @show unix2datetime(c.t[1+offset]./1000)
+	# @show unix2datetime(c.t[endset]./1000)
 	# @show unix2datetime(c.t[end]./1000)
 	# @show all(c.t[2:end].- c.t[1:end-1].==60000)
 	# @show o.t

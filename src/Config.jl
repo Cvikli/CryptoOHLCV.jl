@@ -14,7 +14,7 @@ module_directory = string(string(@__FILE__)[1:end-14]) # hardcoded... so basical
 
 	exchange::String    = "binance"
 	market::String      = "BTC_USDT"
-	is_futures::Bool    = false
+	is_futures::Bool    = true
 
 	dayframe::UnitRange{Int}     = 0:42
 	timestamps::UnitRange{Int}   = -1:-1
