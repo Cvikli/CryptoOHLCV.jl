@@ -63,7 +63,15 @@ end
 dwnl_data_ccxt(src, start_date, end_date, candle, ct_now) = @assert false "unimplemented... I need to copy this yet..."
 dwnl_tick_ccxt(src, start_date, end_date, candle, ct_now) = @assert false "unimplemented... I need to copy this yet..."
 
-
+function cut_data_to_day!(ohlcv)
+  ts = ohlcv.t
+  metric = (ts[2] - ts[1]) ÷ 1000
+	date = unix2datetime(ts[1] ÷ 1000)
+  year, month, day = Dates.year(date), Dates.month(date), Dates.day(date)
+  next_day_start_unix = Dates.datetime2unix(DateTime(year, month, day) + Day(1))
+  cut_size = Int(ceil((next_day_start_unix*1000 - ts[1]) / (metric*1000))) + 1
+	ohlcv.o, ohlcv.h, ohlcv.l, ohlcv.c, ohlcv.v, ohlcv.t = ohlcv.o[cut_size:end], ohlcv.h[cut_size:end], ohlcv.l[cut_size:end], ohlcv.c[cut_size:end], ohlcv.v[cut_size:end], ohlcv.t[cut_size:end] 
+end
 postprocess_ohlcv!(o::T) where T <: CandleType = if o.candle_type in 
 		[
 			:TICK, 
@@ -88,6 +96,7 @@ postprocess_ohlcv!(o::T) where T <: CandleType = if o.candle_type in
 		# @display [unix2datetime.(floor.([Int64], o.t ./ 1000)) o.c]
 		@assert  all(o.t[2:end] .- o.t[1:end-1] .== 60*1000) "$(o.t[2:end] .- o.t[1:end-1])  ?== $(60*1000)"
 		o.o, o.h, o.l, o.c, o.v, o.t = combine_klines_fast(o, metric_round, offset)
+		cut_data_to_day!(o)
 		# @display [unix2datetime.(floor.([Int64], o.t ./ 1000)) o.c]
 		@assert  all(o.t[2:end] .- o.t[1:end-1] .== o.candle_value*1000) "$(o.t[2:end] .- o.t[1:end-1])  ?== $(o.candle_value*1000)"
 	end

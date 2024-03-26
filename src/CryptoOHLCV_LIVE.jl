@@ -10,16 +10,28 @@ are_there_gap!(c::C, new_ts::Int64,       time_frame) where C <: CandleType = be
 		# +CANDLE_TO_MS["1m"]
 		miss = UniversalStruct.load(C, :validation, c.exchange, c.market, c.is_futures, c.candle_type, c.candle_value, cld(c_tsend,1000), floor_ts(floor(Int,(new_ts-2)/1000),60))
 		postprocess_ohlcv!(miss)
+		any(c.t[end] === t for t in miss.t) && @warn  "We have duplicated timestamps in the miss!"
+		miss.o = miss.o[miss.t .> c.t[end]]
+		miss.h = miss.h[miss.t .> c.t[end]]
+		miss.l = miss.l[miss.t .> c.t[end]]
+		miss.c = miss.c[miss.t .> c.t[end]]
+		miss.v = miss.v[miss.t .> c.t[end]]
+		miss.t = miss.t[miss.t .> c.t[end]]
 		(length(miss.c) > 0) && append!(c, miss)
+		@assert all(c.t[1:end-1] - c.t[2:end] .!== 0) "Duplicated timestamps detected!"
 	end
 end
 
 stop_LIVE_data(c::C)  where C <: CandleType =  c.LIVE=false
 function start_LIVE_data(c::C) where C <: CandleType
-	 c.LIVE=true
-	 @async_showerr live_data_streaming(c)
+	@async_showerr live_data_streaming(c)
 end
 function live_data_streaming(c::C) where C <: CandleType
+	if c.LIVE == true
+		@warn "LIVE data is already running! We don't start it again!" 
+		return
+	end
+	c.LIVE=true
 	market_lowcase = lowercase(replace(c.market, "_" => ""))
 	candle = reverse_parse_candle(c)
 	# @assert false "1m-ben szedjük akkor... ezt majd ..."

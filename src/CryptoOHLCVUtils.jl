@@ -34,7 +34,7 @@ normalize(ohlcv::OHLCV, ohlcv_v) = begin
   normer = MeanNorm(mean)
   normalize(normer, ohlcv), normalize(normer, ohlcv_v), normer
 end
-unnormalize(ohlcv,meaner::MeanNorm) = begin
+unnormalize(meaner::MeanNorm, ohlcv,) = begin
   new_ohlcv = deepcopy(ohlcv)
   denorm!(meaner, new_ohlcv.o)
   denorm!(meaner, new_ohlcv.h)
