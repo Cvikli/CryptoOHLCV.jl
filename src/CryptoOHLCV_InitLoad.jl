@@ -68,20 +68,24 @@ function cut_data_to_day!(ohlcv)
   metric = (ts[2] - ts[1]) ÷ 1000
 	date = unix2datetime(ts[1] ÷ 1000)
   year, month, day = Dates.year(date), Dates.month(date), Dates.day(date)
-  next_day_start_unix = Dates.datetime2unix(DateTime(year, month, day) + Day(1))
+  next_day_start = DateTime(year, month, day)
+	if Dates.datetime2unix(next_day_start) != ts[1] ÷ 1000
+		next_day_start += Day(1)
+	end
+	next_day_start_unix = Dates.datetime2unix(next_day_start)
   cut_size = Int(ceil((next_day_start_unix*1000 - ts[1]) / (metric*1000))) + 1
 	ohlcv.o, ohlcv.h, ohlcv.l, ohlcv.c, ohlcv.v, ohlcv.t = ohlcv.o[cut_size:end], ohlcv.h[cut_size:end], ohlcv.l[cut_size:end], ohlcv.c[cut_size:end], ohlcv.v[cut_size:end], ohlcv.t[cut_size:end] 
 end
-postprocess_ohlcv!(o::T) where T <: CandleType = if o.candle_type in 
+postprocess_ohlcv!(o::T, need_cut=false) where T <: CandleType = if o.candle_type in 
 		[
 			:TICK, 
 			:TICK_MMM, :TICK_STONE
 		]
-		@warn "from and to date isn't supported for tick data!! TODO"
+		@warn "from and to date isn't supported for tick data!! todo"
 		# all_data = refresh_tick_data(  o.exchange, o.market, o.is_futures, first(o.timestamps), last(o.timestamps))
 		# cut_data_tick!(o, all_data)
 		# cut_data_tick!(o, c)
-		o.o, o.h, o.l, o.c, o.v, o.t = combine_klines_fast_tick(o, o.candle_value, Val(o.candle_type))
+		(o.o, o.h, o.l, o.c, o.v), o.t = combine_klines_fast_tick(o, o.candle_value, Val(o.candle_type))
 	else
 		# all_data = refresh_minute_data(o.exchange, o.market, o.is_futures, first(o.timestamps), last(o.timestamps))
 		# cut_data_1m!(o, all_data)
@@ -90,13 +94,14 @@ postprocess_ohlcv!(o::T) where T <: CandleType = if o.candle_type in
 		fr     = first(o.timestamps)
 		# @show ceil_ts(fr, o.candle_value)-fr
 		offset = cld(ceil_ts(fr, o.candle_value)-ceil_ts(fr,60),60)
+		@assert 60_000 == o.t[2]-o.t[1] "We have not tested other cases yet..."
 		metric_round = cld(o.candle_value,60)
 		# cut_data_1m!(o, c)
 
 		# @display [unix2datetime.(floor.([Int64], o.t ./ 1000)) o.c]
 		@assert  all(o.t[2:end] .- o.t[1:end-1] .== 60*1000) "$(o.t[2:end] .- o.t[1:end-1])  ?== $(60*1000)"
-		o.o, o.h, o.l, o.c, o.v, o.t = combine_klines_fast(o, metric_round, offset)
-		cut_data_to_day!(o)
+		(o.o, o.h, o.l, o.c, o.v), o.t = combine_klines_fast(o, metric_round, offset)
+		need_cut && cut_data_to_day!(o)
 		# @display [unix2datetime.(floor.([Int64], o.t ./ 1000)) o.c]
 		@assert  all(o.t[2:end] .- o.t[1:end-1] .== o.candle_value*1000) "$(o.t[2:end] .- o.t[1:end-1])  ?== $(o.candle_value*1000)"
 	end

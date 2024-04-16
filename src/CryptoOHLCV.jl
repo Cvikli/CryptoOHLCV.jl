@@ -79,7 +79,7 @@ const ohlcv_load = Dict{Tuple{DataType, Symbol, String, String, Bool, Symbol, In
 
 get_ohlcv(source, context=ctx) = begin
 	key = unique_key(OHLCV, :TRAIN, source, context)
-	d = key in keys(ohlcv_load) ? ohlcv_load[key] : (ohlcv_load[key] = ((x=load(key...)); postprocess_ohlcv!(x); x))
+	d = key in keys(ohlcv_load) ? ohlcv_load[key] : (ohlcv_load[key] = ((x=load(key...)); postprocess_ohlcv!(x, true); x))
 	# d = @memoize_typed OHLCV load(OHLCV, market, candle, fr, to)
 	d
 end
@@ -87,7 +87,7 @@ macro ohlcv_str(source); get_ohlcv(source); end
 
 get_ohlcv_v(source, context=ctx) = begin
 	key = unique_key(OHLCV, :VALIDATION, source, context)
-	d = key in keys(ohlcv_load) ? ohlcv_load[key] : (ohlcv_load[key] = ((x=load(key...)); postprocess_ohlcv!(x); x))
+	d = key in keys(ohlcv_load) ? ohlcv_load[key] : (ohlcv_load[key] = ((x=load(key...)); postprocess_ohlcv!(x, true); x))
 	d.set = :VALIDATION # TODO check if this is really needed. as for now I do this for safety reasons, although it could be because ohlcv was mutably changed before, but not anymore.
 	# d = @memoize_typed OHLCV_v load(OHLCV_v, market, candle, fr, to)
 	d
