@@ -10,9 +10,9 @@ ceil_ts( ts, cv) = (m =  ts%cv;  m>0 ? ts-m+cv : ts)
 floor_ts(ts, cv) = ts - (ts%cv)
 
 
-isfutures_str(isfutures::String) = isfutures=="F" ? true : false
-isfutures_str(isfutures::Bool)   = isfutures ? "F" : "N"
-isfutures_long(isfutures::Bool)  = isfutures ? ":futures" : ""
+isfutures_str(isfutures::String) = isfutures=="F" ? true                 : false
+isfutures_str(isfutures::Bool)      = isfutures               ? "F"                   : "S"
+isfutures_long(isfutures::Bool)   = isfutures               ? ":futures" : "spot"
 candle2metric(candle) = Dict("1m" => 60, "5m" => 300, "15m" => 900, "30m" => 1800, "1s" => 1, "2s" => 2, "15s" => 15, "5s" => 5, "1h" => 3600, "4h" => 3600*4, "tick"=>0)[candle]
 metric2candle(metric) = Dict(60 => "1m", 300 => "5m", 900 => "15m", 1800 => "30m", 1 => "1s", 2 => "2s", 5 => "5s", 15 => "15s", 3600 => "1h", 3600*4 => "4h", 0=>"tick")[metric]
 

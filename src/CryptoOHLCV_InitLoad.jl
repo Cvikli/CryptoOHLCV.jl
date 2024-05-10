@@ -1,6 +1,6 @@
 
 UniversalStruct.init(TYPE::Type{T}, set, exchange, market, is_futures, candle_type, candle_value, fr, to) where T <: CandleType = begin
-  @assert (datetime2unix(now(UTC))*1000 + 1000 > to) "We want to query data from the future... please be careful: NOW: $(now(UTC)) TO: $(unix2datetime(to))" 
+	@assert (datetime2unix(now(UTC))*1000 + 1000 > to) "We want to query data from the future... please be careful: NOW: $(now(UTC)) TO: $(unix2datetime(to))" 
 	@assert fr < to "Wrong dates: from $fr to $to is wrong as it is: $(to-fr) time"
 	TYPE(timestamps = fr:to
 			;set, exchange, market, is_futures, candle_type, candle_value,
@@ -14,7 +14,7 @@ UniversalStruct.load_data!(o::T) where T <: CandleType = o.candle_type in [
 
 	
 extend(d::T, o, h, l, c, v, OHLCV_time, misses) where T <: CandleType = begin
-	d.t      = !isempty(d.t)      ? vcat(d.t,OHLCV_time)  : OHLCV_time
+	d.t               = !isempty(d.t)      ? vcat(d.t,OHLCV_time)  : OHLCV_time
 	d.misses = !isempty(d.misses) ? vcat(d.misses,misses) : misses
 	d.o,d.h,d.l,d.c,d.v = o, h, l, c, v
 end
@@ -32,10 +32,9 @@ end
 load_new_tick_data(d) = begin
 	o_fr, o_to = first(d.timestamps), last(d.timestamps)
 	if d.exchange !== "binance"
-    o, h, l, c, v, t, misses = dwnl_tick_ccxt("$(exchange):$(market):$(isfutures)", start_date, end_date, "tick", d.context.now_ts)
+    	o, h, l, c, v, t, misses = dwnl_tick_ccxt("$(exchange):$(market):$(isfutures)", start_date, end_date, "tick", d.context.now_ts)
 	else
-		maket = replace(d.market, "_" => "")
-		o, h, l, c, v, t, misses = dwnl_tick_data(maket, d.is_futures, o_fr, o_to)
+		o, h, l, c, v, t, misses = dwnl_tick_data(replace(d.market, "_" => ""), d.is_futures, o_fr, o_to)
 	end
 	extend(d, o, h, l, c, v, t, misses)
 	d
@@ -93,13 +92,13 @@ postprocess_ohlcv!(o::T, need_cut=false) where T <: CandleType = if o.candle_typ
 		@assert o.candle_value>=60 "We cannot handle things under 1min(60s) d.candle_value=$(o.candle_value)"
 		fr     = first(o.timestamps)
 		# @show ceil_ts(fr, o.candle_value)-fr
-		offset = cld(ceil_ts(fr, o.candle_value)-ceil_ts(fr,60),60)
+		offset = cld(ceil_ts(fr, o.candle_value*1000)-ceil_ts(fr,60_000),60_000)
 		@assert 60_000 == o.t[2]-o.t[1] "We have not tested other cases yet..."
 		metric_round = cld(o.candle_value,60)
 		# cut_data_1m!(o, c)
 
 		# @display [unix2datetime.(floor.([Int64], o.t ./ 1000)) o.c]
-		@assert  all(o.t[2:end] .- o.t[1:end-1] .== 60*1000) "$(o.t[2:end] .- o.t[1:end-1])  ?== $(60*1000)"
+		@assert  all(o.t[2:end] .- o.t[1:end-1] .== 60_000) "$(o.t[2:end] .- o.t[1:end-1])  ?== $(60_000)"
 		(o.o, o.h, o.l, o.c, o.v), o.t = combine_klines_fast(o, metric_round, offset)
 		need_cut && cut_data_to_day!(o)
 		# @display [unix2datetime.(floor.([Int64], o.t ./ 1000)) o.c]

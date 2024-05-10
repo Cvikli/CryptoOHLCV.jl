@@ -11,12 +11,21 @@ UniversalStruct.init_after_data(o::T1,  c::T2)  where {T1 <: CandleType, T2 <: C
 
 UniversalStruct.append(o::T1, c::T2) where {T1 <: CandleType, T2 <: CandleType} = append!(o, c)
 append!(o::T1, c::T2)                where {T1 <: CandleType, T2 <: CandleType} = begin 
-	o.t = vcat(o.t, c.t) # TODO... this seems bad!!
-	o.o = vcat(o.o, c.o)
-	o.h = vcat(o.h, c.h)
-	o.l = vcat(o.l, c.l)
-	o.c = vcat(o.c, c.c)
-	o.v = vcat(o.v, c.v)
+	if o.t[end]==c.t[1]
+		o.t = vcat(o.t[1:end-1], c.t)
+		o.o = vcat(o.o[1:end-1], c.o)
+		o.h = vcat(o.h[1:end-1], c.h)
+		o.l = vcat(o.l[1:end-1], c.l)
+		o.c = vcat(o.c[1:end-1], c.c)
+		o.v = vcat(o.v[1:end-1], c.v)
+	else
+		o.t = vcat(o.t, c.t) # TODO... this seems bad!!
+		o.o = vcat(o.o, c.o)
+		o.h = vcat(o.h, c.h)
+		o.l = vcat(o.l, c.l)
+		o.c = vcat(o.c, c.c)
+		o.v = vcat(o.v, c.v)
+	end
 	o.timestamps = first(o.timestamps):last(c.timestamps)
 	return o
 end
@@ -26,33 +35,18 @@ UniversalStruct.cut_requested!(o::T1, c::T2)    where {T1 <: CandleType, T2 <: C
 else
 	cut_data_tick!(o, c)
 end
-cut_data_tick!(o, c) = begin
-	o_fr, o_to = first(o.timestamps)*1000, last(o.timestamps)*1000
-	offset = 1
-	endset = length(c.t)
-	while c.t[offset] < o_fr && offset < endset
-		offset+=1; end
-	while c.t[endset] > o_to && endset > offset-1
-		endset-=1; end
-	
-	o.t = c.t[offset:endset]
-	o.o = c.o[offset:endset]
-	o.h = c.h[offset:endset]
-	o.l = c.l[offset:endset]
-	o.c = c.c[offset:endset]
-	o.v = c.v[offset:endset]
-	o
-end
+
 cut_data_1m!(o, c) = begin
-	min_candle_value = 60
+	min_candle_value = 60_000
 	o_fr, o_to = first(o.timestamps), last(o.timestamps)
-	c_fr       = cld(c.t[1],1000) # first(c.timestamps)
+	c_fr       = c.t[1] # first(c.timestamps)
 
 	offset = cld(o_fr - c_fr, min_candle_value)
 	endset = cld(o_to - o_to%min_candle_value - c_fr, min_candle_value)
 	# @show first(c.timestamps)%min_candle_value
 	# @show o.timestamps
 	# @show c.timestamps
+	# @show -(c_fr-o_to)/min_candle_value
 	# @show c.t[end-30:end]
 	# @display unix2datetime.(c.t[end-7:end]./1000)
 	# @show (c.t[1])
@@ -84,4 +78,21 @@ cut_data_1m!(o, c) = begin
 	o
 end
 
+cut_data_tick!(o, c) = begin
+	o_fr, o_to = first(o.timestamps), last(o.timestamps)
+	offset = 1
+	endset = length(c.t)
+	while c.t[offset] < o_fr && offset < endset
+		offset+=1; end
+	while c.t[endset] > o_to && endset > offset-1
+		endset-=1; end
+	
+	o.t = c.t[offset:endset]
+	o.o = c.o[offset:endset]
+	o.h = c.h[offset:endset]
+	o.l = c.l[offset:endset]
+	o.c = c.c[offset:endset]
+	o.v = c.v[offset:endset]
+	o
+end
 

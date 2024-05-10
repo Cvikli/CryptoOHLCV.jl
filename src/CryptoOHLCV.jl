@@ -23,10 +23,11 @@ using Base: @kwdef
 
 using HTTP
 using HTTP.Exceptions: ConnectError
-using JSON
+using JSON3
 
 using MemoizeTyped
 using UniversalStruct
+using UniversalStruct: load_nocache
 
 
 
@@ -61,10 +62,11 @@ end
 date_range(ohlcv::T)    where T <: CandleType = date_range(first(ohlcv.timestamps),last(ohlcv.timestamps)) # format(DateTime(first(ohlcv.t)), "yyyy.mm.dd HH:MM")
 splatt(ohlcv::T)        where T <: CandleType = (ohlcv.o,ohlcv.h,ohlcv.l,ohlcv.c,ohlcv.v,ohlcv.t)
 splatt_notime(ohlcv::T) where T <: CandleType = (ohlcv.o,ohlcv.h,ohlcv.l,ohlcv.c,ohlcv.v)
+Base.getindex(ohlcv::OHLCV, idx::Int64) = ohlcv[idx:idx]
 Base.getindex(ohlcv::OHLCV, rang::UnitRange{Int64}) = begin
 	ex,market,fut = reconstruct_src(ohlcv)
 	candle = reverse_parse_candle(ohlcv)
-	d = get_ohlcv("$ex:$market@$(candle)$fut|$(first(rang))-$(last(rang))")
+	d = get_ohlcv("$ex:$market@$(candle)$fut|$(first(rang))*$(last(rang))")
 	d.set = ohlcv.set
 	d
 end
@@ -79,7 +81,9 @@ const ohlcv_load = Dict{Tuple{DataType, Symbol, String, String, Bool, Symbol, In
 
 get_ohlcv(source, context=ctx) = begin
 	key = unique_key(OHLCV, :TRAIN, source, context)
+	# @show key
 	d = key in keys(ohlcv_load) ? ohlcv_load[key] : (ohlcv_load[key] = ((x=load(key...)); postprocess_ohlcv!(x, true); x))
+	# d = ((x= load(key...)); postprocess_ohlcv!(x, true); x)
 	# d = @memoize_typed OHLCV load(OHLCV, market, candle, fr, to)
 	d
 end

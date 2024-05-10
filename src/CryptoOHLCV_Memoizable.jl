@@ -2,12 +2,13 @@
 parse_source(source_str, ctxt) = begin
 	exch,mark,fut = ctxt.exchange, ctxt.market, ctxt.is_futures
   res = String.(split(source_str, ":"))
-	length(res) == 1 &&                             return exch, res[1], fut
-  length(res) == 2 && res[2][1:7] == "futures" && return exch, res[1], true
-	length(res) == 2 && res[2][1:7] == "spot"    && return exch, res[2], false
-  length(res) == 2                             && return res[1], res[2], fut
-  length(res) == 3 &&                     		    return res[1], res[2], res[3] == "futures"
-	@assert false "unparseable market source $source_str (format: [exchange:][market@]candle[:futures][|from-to])"
+	length(res) == 1                                                                     && return exch, res[1], fut
+	length(res) == 2 && res[2] == "futures"              && return exch, res[1], true
+	length(res) == 2 && res[2] == "spot"                      && return exch, res[1], false
+	length(res) == 2                                                                    && return res[1], res[2], fut
+	length(res) == 3 && res[3] == "futures"              && return res[1], res[2], true
+	length(res) == 3 && res[3] == "spot"                      && return res[1], res[2], false
+	@assert false "unparseable market source $source_str (format: [exchange:][market@]candle[:futures][|from*to])"
 end
 reconstruct_src(o::T) where T <: CandleType = reconstruct_src(o.exchange, o.market, o.is_futures)
 reconstruct_src(ex, market, isfuture) = "$ex","$market","$(isfutures_long(isfuture))"
@@ -34,8 +35,14 @@ reverse_parse_candle(candly_type, candle_value) = begin
 	throw("Unknown type")
 end
 
-to_ts_range(arr) = arr[2]:arr[1]
-parse_range(rang) = rang[1], to_ts_range(Δday2ts.(parse.(Int,(split(rang[2], '-')))))
+parse_range(rang) = begin
+	to,fr = parse.(Int64,(split(rang[2], '*')))
+	abs(fr) < 100000                   && abs(to) < 100000                      && return rang[1], Δday2ts(fr):Δday2ts(to)
+	abs(fr) < 10000000000       && abs(to) < 10000000000         && return rang[1], to*1000:fr*1000
+	abs(fr) < 10000000000000 && abs(to) < 10000000000000 && @warn("We cutted down the ms parts, so: fr -> $((to)) to -> $((fr)) ") && return rang[1], to:fr
+	@assert false "Invalid date ranges: (from= $fr,to =$to) We accept days, timestamps and timestamp  in ms precision only (The order is: [ts_from]:[ts_to] or [day_to]:[day_from] as we do it like this 0:100 for 100 day lookback from the reference time(ctx.init_now_ts))"
+end
+daystyle(range::UnitRange{Int})     = "$(first(range))*$(last(range))"
 
 unique_key(TYPE::Type{T}, set, src, ctxt) where T <: CandleType = begin
 	source, tframe = '|' in src ? parse_range(String.(split(src,'|'))) : (src, ctxt.timestamps)
@@ -44,7 +51,6 @@ unique_key(TYPE::Type{T}, set, src, ctxt) where T <: CandleType = begin
 	candle_type, candle_value = parse_candle(candle)
 	fr, to = first(tframe), last(tframe)
 	# @show source, tframe
-	# @show fr, to
 	# @show exchange, marketframe, is_futures
 	# @show market, candle
 

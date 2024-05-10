@@ -5,8 +5,8 @@ using Revise
 using UniversalStruct
 using CryptoOHLCV
 # ctx.source   = "binance:BNB_BTC:futures"
-ctx.dayframe = 3:4
-# ctx.dayframe=14:31
+# set_day_range!(ctx; dayframe = 3:4)
+# set_day_range!(ctx; dayframe = 14:31)
 
 d= ohlcv"1m"
 d= ohlcv"BTC_USDT@1m:futures"

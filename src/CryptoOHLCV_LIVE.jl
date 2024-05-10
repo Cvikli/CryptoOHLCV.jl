@@ -4,13 +4,13 @@
 are_there_gap!(c::C, new_ts_f64::Float64, time_frame) where C <: CandleType = are_there_gap!(c, Int64(new_ts_f64), time_frame)
 are_there_gap!(c::C, new_ts::Int64,       time_frame) where C <: CandleType = begin
 	c_tsend = c.t[end]
-	if (new_ts - c_tsend) / CANDLE_TO_MS[time_frame] > 1.05 
+	if (new_ts - c_tsend)  > CANDLE_TO_MS[time_frame]
 		@info "GAP in the system: $(c_tsend) - $(new_ts) -> $((new_ts - c_tsend) / CANDLE_TO_MS[time_frame])"
 		@info "We are filling it."
 		# +CANDLE_TO_MS["1m"]
-		miss = UniversalStruct.load(C, :validation, c.exchange, c.market, c.is_futures, c.candle_type, c.candle_value, cld(c_tsend,1000), floor_ts(floor(Int,(new_ts-2)/1000),60))
+		miss = UniversalStruct.load(C, :validation, c.exchange, c.market, c.is_futures, c.candle_type, c.candle_value, c_tsend+1, new_ts)
 		postprocess_ohlcv!(miss)
-		any(c.t[end] === t for t in miss.t) && @warn  "We have duplicated timestamps in the miss!"
+		any(c.t[end] === t for t in miss.t) && @warn  "We have duplicated timestamps in the miss! $([(i,tx) for (i,tx) in enumerate(miss.t) if c.t[end] === tx])"
 		miss.o = miss.o[miss.t .> c.t[end]]
 		miss.h = miss.h[miss.t .> c.t[end]]
 		miss.l = miss.l[miss.t .> c.t[end]]
@@ -38,6 +38,7 @@ function live_data_streaming(c::C) where C <: CandleType
 	# candle = "1m"
 
 	are_there_gap!(c, datetime2unix(now(UTC))*1000, candle)
+	println("There should be no data gap from now! ")
 	notify(c.used)
 
 	url = get_stream_url(market_lowcase, candle)
@@ -54,7 +55,7 @@ function live_data_streaming(c::C) where C <: CandleType
 				try
 					for dd in ws #!eof(ws);
 						c.LIVE==false && break
-						rd = JSON.parse(String(dd))
+						rd = JSON3.read(dd)
 						d=rd["data"]["k"]
 						if d["x"]
 							ts = Int64(d["t"])
@@ -66,7 +67,7 @@ function live_data_streaming(c::C) where C <: CandleType
 							c.c = [c.c; parse(Float32, d["c"])]
 							c.v = [c.v; parse(Float32, d["v"])]
 							c.t = [c.t; [ts]]
-							@show d
+							# @show d
 							repetition>0 && (repetition=max(0,repetition-2))
 							notify(c.used)
 						else
