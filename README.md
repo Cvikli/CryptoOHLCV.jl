@@ -23,7 +23,7 @@ using CryptoOHLCV
 ctx.exchange    = "binance"
 ctx.market      = "BTC_USDT"
 ctx.is_futures  = false
-ctx.dayframe    = 0:2
+set_day_range!(ctx; dayframe = 0:2)
 ```
 
 `ctx` is a OHLCVConfig struct, the important things are: 
@@ -31,7 +31,6 @@ ctx.dayframe    = 0:2
 @kwdef mutable struct OHLCVConfig
   use_cache::Bool   = true 
   source::String    ="binance:BTC_USDT:futures"
-	dayframe::UnitRange{Int}     = 30:41
 	timestamps::UnitRange{Int}   = -1:-1
   maximum_candle_size::Int     = 3600
   data_path::String = "./data"
