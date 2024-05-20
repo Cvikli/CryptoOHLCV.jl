@@ -179,8 +179,10 @@ function combine_klines_big(ohlcvt::Tuple, repetition, offset=0)
   end
   # inds = 1+offset:repetition:length(ohlcv[1]) - repetition + 1
   new_ohlcv = Tuple(zeros(eltype(o), length(inds)) for _ in 1:5)
-  for (j, i) in enumerate(inds)
-    combine_klines!(new_ohlcv, j, (o,h,l,c,v), i, j < length(inds) ? inds[j+1] : length(o))
+  for (j, i) in enumerate(inds) # assigning upsampled candles into new_ohlcv (on index j) 
+    endidx = j == length(inds) ? length(o) : inds[j+1]
+    endidx <i+1 && continue
+    combine_klines!(new_ohlcv, j, (o,h,l,c,v), i+1, endidx)
   end
   new_ohlcv, new_ts, inds
 end

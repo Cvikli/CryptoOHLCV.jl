@@ -57,7 +57,8 @@ abstract type CandleType <: Universal end
 	LIVE::Bool         = false
 	used::Event        = Event()
 end
-
+# We recreate a new OHLCV from the old ohlcv
+create_OHLCV_from(orig, o,h,l,c,v,t) = OHLCV(orig.set, orig.exchange, orig.market, orig.is_futures, orig.candle_type, orig.candle_value, orig.timestamps, "", orig.misses, t, o,h,l,c,v, false, Event())
 
 date_range(ohlcv::T)    where T <: CandleType = date_range(first(ohlcv.timestamps),last(ohlcv.timestamps)) # format(DateTime(first(ohlcv.t)), "yyyy.mm.dd HH:MM")
 splatt(ohlcv::T)        where T <: CandleType = (ohlcv.o,ohlcv.h,ohlcv.l,ohlcv.c,ohlcv.v,ohlcv.t)
