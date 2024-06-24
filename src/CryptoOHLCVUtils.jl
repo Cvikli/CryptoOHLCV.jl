@@ -10,11 +10,11 @@ ceil_ts( ts, cv) = (m =  ts%cv;  m>0 ? ts-m+cv : ts)
 floor_ts(ts, cv) = ts - (ts%cv)
 
 
-isfutures_str(isfutures::String) = isfutures=="F" ? true                 : false
-isfutures_str(isfutures::Bool)      = isfutures               ? "F"                   : "S"
-isfutures_long(isfutures::Bool)   = isfutures               ? ":futures" : "spot"
+isfutures_str(isfutures::String)  = isfutures=="F" ? true       : false
+isfutures_str(isfutures::Bool)    = isfutures      ? "F"        : "S"
+isfutures_long(isfutures::Bool)   = isfutures      ? ":futures" : "spot"
 candle2metric(candle) = Dict("1m" => 60, "5m" => 300, "15m" => 900, "30m" => 1800, "1s" => 1, "2s" => 2, "15s" => 15, "5s" => 5, "1h" => 3600, "4h" => 3600*4, "tick"=>0)[candle]
-metric2candle(metric) = Dict(60 => "1m", 300 => "5m", 900 => "15m", 1800 => "30m", 1 => "1s", 2 => "2s", 5 => "5s", 15 => "15s", 3600 => "1h", 3600*4 => "4h", 0=>"tick")[metric]
+metric2candle(type, metric) = type == :TICK ? "$metric" : Dict(60 => "1m", 300 => "5m", 900 => "15m", 1800 => "30m", 1 => "1s", 2 => "2s", 5 => "5s", 15 => "15s", 3600 => "1h", 3600*4 => "4h", 0=>"tick")[metric]
 
 
 normalize(meaner::MeanNorm, ohlcv, ) = begin
@@ -129,19 +129,18 @@ combine_klines_fast_tick(ohlcv, window, ::Val{:TICK}, offset=0) = begin
   new_c  = Vector{eltype(o)}(undef, ass_len)
   new_v  = Vector{eltype(o)}(undef, ass_len)
   new_ts = Vector{eltype(t)}(undef, ass_len)
-	i = 2
+	i = 1
 	j = 0
-	while i < max_len
+	while i+window < max_len
 		j+=1
-		bi = 1
 		new_o[j] = o[i]
 		high, low, vol = h[i], l[i], v[i]
-		while bi <= window
+		bi = i + window
+		while i < bi
+			i+=1
 			high < h[i] && (high = h[i])
 			low  > l[i] && (low  = l[i])
 			vol += v[i]
-			i+=1
-			bi+= 1
 		end
     new_h[j],new_l[j],new_c[j],new_v[j],new_ts[j] = high, low, c[i-1], vol, t[i-1]
   end

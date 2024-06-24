@@ -19,7 +19,16 @@ d= ohlcv"BTC_USDT@1m:futures"
 # d= ohlcv_v"30m"
 # d= ohlcv_v"tick500"
 
+d= ohlcv"tick500|1711400700000*1711411200000"
 #%%
+d.c
+#%%
+using CryptoOHLCV
+d= ohlcv"BTC_USDT@1m:futures|1715056901*1715166900"
+#%%
+dd= ohlcv"BTC_USDT@1m:futures|1715056901*1715166900"
+#%%
+d.t
 @sizes d.t
 #%%
 using Dates

@@ -14,7 +14,7 @@ UniversalStruct.load_data!(o::T) where T <: CandleType = o.candle_type in [
 
 	
 extend(d::T, o, h, l, c, v, OHLCV_time, misses) where T <: CandleType = begin
-	d.t               = !isempty(d.t)      ? vcat(d.t,OHLCV_time)  : OHLCV_time
+	d.t      = !isempty(d.t)      ? vcat(d.t,OHLCV_time)  : OHLCV_time
 	d.misses = !isempty(d.misses) ? vcat(d.misses,misses) : misses
 	d.o,d.h,d.l,d.c,d.v = o, h, l, c, v
 end
@@ -32,9 +32,9 @@ end
 load_new_tick_data(d) = begin
 	o_fr, o_to = first(d.timestamps), last(d.timestamps)
 	if d.exchange !== "binance"
-    	o, h, l, c, v, t, misses = dwnl_tick_ccxt("$(exchange):$(market):$(isfutures)", start_date, end_date, "tick", d.context.now_ts)
+    o, h, l, c, v, t, misses = dwnl_tick_ccxt("$(exchange):$(market):$(isfutures)", start_date, end_date, "tick", d.context.now_ts)
 	else
-		o, h, l, c, v, t, misses = dwnl_tick_data(replace(d.market, "_" => ""), d.is_futures, o_fr, o_to)
+		o, h, l, c, v, t, misses = dwnl_tick_data(d.market, d.is_futures, o_fr, o_to)
 	end
 	extend(d, o, h, l, c, v, t, misses)
 	d

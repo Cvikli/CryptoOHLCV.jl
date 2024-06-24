@@ -37,9 +37,9 @@ end
 
 parse_range(rang) = begin
 	to,fr = parse.(Int64,(split(rang[2], '*')))
-	abs(fr) < 100000                   && abs(to) < 100000                      && return rang[1], Δday2ts(fr):Δday2ts(to)
-	abs(fr) < 10000000000       && abs(to) < 10000000000         && return rang[1], to*1000:fr*1000
-	abs(fr) < 10000000000000 && abs(to) < 10000000000000 && @warn("We cutted down the ms parts, so: fr -> $((to)) to -> $((fr)) ") && return rang[1], to:fr
+	abs(fr) < 100000         && abs(to) < 100000         && return rang[1], Δday2ts(fr):Δday2ts(to)
+	abs(fr) < 10000000000    && abs(to) < 10000000000    && return rang[1], to*1000:fr*1000
+	abs(fr) < 10000000000000 && abs(to) < 10000000000000 && return rang[1], to:fr
 	@assert false "Invalid date ranges: (from= $fr,to =$to) We accept days, timestamps and timestamp  in ms precision only (The order is: [ts_from]:[ts_to] or [day_to]:[day_from] as we do it like this 0:100 for 100 day lookback from the reference time(ctx.init_now_ts))"
 end
 daystyle(range::UnitRange{Int})     = "$(first(range))*$(last(range))"
