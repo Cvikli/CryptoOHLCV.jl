@@ -63,6 +63,7 @@ create_OHLCV_from(orig, o,h,l,c,v,t) = OHLCV(orig.set, orig.exchange, orig.marke
 date_range(ohlcv::T)    where T <: CandleType = date_range(first(ohlcv.timestamps),last(ohlcv.timestamps)) # format(DateTime(first(ohlcv.t)), "yyyy.mm.dd HH:MM")
 splatt(ohlcv::T)        where T <: CandleType = (ohlcv.o,ohlcv.h,ohlcv.l,ohlcv.c,ohlcv.v,ohlcv.t)
 splatt_notime(ohlcv::T) where T <: CandleType = (ohlcv.o,ohlcv.h,ohlcv.l,ohlcv.c,ohlcv.v)
+Base.length(ohlcv::OHLCV) = length(ohlcv.t)
 Base.getindex(ohlcv::OHLCV, idx::Int64) = ohlcv[idx:idx]
 Base.getindex(ohlcv::OHLCV, rang::UnitRange{Int64}) = begin
 	ex,market,fut = reconstruct_src(ohlcv)
@@ -98,6 +99,14 @@ get_ohlcv_v(source, context=ctx) = begin
 	d
 end
 macro ohlcv_v_str(source); get_ohlcv_v(source); end
+
+get_ohlcv_t(source, context=ctx) = begin
+	key = unique_key(OHLCV, :TEST, source, context)
+	d = key in keys(ohlcv_load) ? ohlcv_load[key] : (ohlcv_load[key] = ((x=load(key...)); postprocess_ohlcv!(x, true); x))
+	d.set = :TEST # TODO check if this is really needed. as for now I do this for safety reasons, although it could be because ohlcv was mutably changed before, but not anymore.
+	d
+end
+macro ohlcv_t_str(source); get_ohlcv_t(source); end
 					
 include("CryptoOHLCV_LIVE.jl")
 
