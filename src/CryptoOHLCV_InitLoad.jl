@@ -1,6 +1,6 @@
 
 UniversalStruct.init(TYPE::Type{T}, set, exchange, market, is_futures, candle_type, candle_value, fr, to) where T <: CandleType = begin
-	@assert (datetime2unix(now(UTC))*1000 + 1000 > to) "We want to query data from the future... please be careful: NOW: $(now(UTC)) TO: $(unix2datetime(to))" 
+	@assert datetime2unix(now(UTC))*1000 + 1000 > to "We want to query data from the future... please be careful: NOW: $(now(UTC)) TO: $(unix2datetime(to ÷ 1000))" 
 	@assert fr < to "Wrong dates: from $fr to $to is wrong as it is: $(to-fr) time"
 	TYPE(timestamps = fr:to
 			;set, exchange, market, is_futures, candle_type, candle_value,

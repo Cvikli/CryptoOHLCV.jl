@@ -34,7 +34,13 @@ normalize(ohlcv::OHLCV, ohlcv_v) = begin
   normer = MeanNorm(mean)
   normalize(normer, ohlcv), normalize(normer, ohlcv_v), normer
 end
-unnormalize(meaner::MeanNorm, ohlcv,) = begin
+normalize(ohlcv::OHLCV, ohlcv_v, ohlcv_t) = begin
+  mean = (sum(ohlcv.c)+sum(ohlcv_v.c)+sum(ohlcv_t.c)) ./ (length(ohlcv.c)+length(ohlcv_v.c)+length(ohlcv_t.c))
+  normer = MeanNorm(mean)
+  normalize(normer, ohlcv), normalize(normer, ohlcv_v),normalize(normer, ohlcv_t), normer
+end
+unnormalize(meaner, ohlcv,) = denormalize(meaner, ohlcv)
+denormalize(meaner::MeanNorm, ohlcv,) = begin
   new_ohlcv = deepcopy(ohlcv)
   denorm!(meaner, new_ohlcv.o)
   denorm!(meaner, new_ohlcv.h)
