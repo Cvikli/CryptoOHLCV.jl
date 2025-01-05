@@ -1,6 +1,6 @@
 # dev ./CryptoOHLCV
 using RelevanceStacktrace
-using Boilerplate
+using BoilerplateCvikli
 using Revise
 using UniversalStruct
 using CryptoOHLCV
@@ -82,7 +82,7 @@ using CryptoOHLCV: query_trades
 a = query_trades("BTC/USDT", 1703617440, 1703619440)
 
 #%%
-using Boilerplate
+using BoilerplateCvikli
 @sizes a
 #%%
 1706959343, 

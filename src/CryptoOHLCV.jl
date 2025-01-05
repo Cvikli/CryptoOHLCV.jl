@@ -2,8 +2,8 @@ module CryptoOHLCV
 
 
 using Revise
-using Boilerplate
-using Boilerplate: @async_showerr
+using BoilerplateCvikli
+using BoilerplateCvikli: @async_showerr
 
 using BinanceAPI: query_klines, query_ticks, initialize_binance, marketdata2ohlcvt, get_stream_url, CANDLE_TO_MS
 using Dates

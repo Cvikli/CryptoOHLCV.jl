@@ -1,5 +1,5 @@
 
-using Boilerplate
+using BoilerplateCvikli
 
 function linear_interpolate!(vec, range, start_val, end_val)
 	w_idxs = 1:length(range)
