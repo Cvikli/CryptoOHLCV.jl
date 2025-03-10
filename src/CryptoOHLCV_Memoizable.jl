@@ -16,9 +16,9 @@ reconstruct_src(ex, market, isfuture) = "$ex","$market","$(isfutures_long(isfutu
 parse_candle(s::String) = begin
 	@assert !(s[end]=='s') "Second bar isn't supported yet...!"
 	s[end]=='s'     && return :SECOND,     parse(Int,s[1:end-1])
-	s[end]=='m'     && return :MINUTE,     parse(Int,s[1:end-1])*60
-	s[end]=='h'     && return :HOUR,       parse(Int,s[1:end-1])*60*60
-	s[end]=='d'     && return :DAY,        parse(Int,s[1:end-1])*60*60*24
+	s[end]=='m'     && return :MINUTE,     parse(Int,s[1:end-1]) * 60
+	s[end]=='h'     && return :HOUR,       parse(Int,s[1:end-1]) * 60 * 60
+	s[end]=='d'     && return :DAY,        parse(Int,s[1:end-1]) * 60 * 60 * 24
 	s[1:4]=="tick"  && return :TICK,       parse(Int,s[5:end])
 	return :UNKNOWN, -1
 end

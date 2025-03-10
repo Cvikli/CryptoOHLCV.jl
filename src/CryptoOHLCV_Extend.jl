@@ -1,98 +1,170 @@
+# Functions for extending OHLCV data with new data
 
+using JLD2
+using Dates
 
+"""
+    extend_ohlcv!(ohlcv::CandleType, to_time::Int)
 
-
-UniversalStruct.need_data_before(o::T1, c::T2)  where {T1 <: CandleType, T2 <: CandleType}= first(o.timestamps) < first(c.timestamps)
-UniversalStruct.need_data_after(o::T1,  c::T2)  where {T1 <: CandleType, T2 <: CandleType}= last(c.timestamps)  < last(o.timestamps)
-
-UniversalStruct.init_before_data(o::T1, c::T2)  where {T1 <: CandleType, T2 <: CandleType} = UniversalStruct.init(T1, o.set, o.exchange, o.market, o.is_futures, o.candle_type, o.candle_value, first(o.timestamps), first(c.timestamps))
-UniversalStruct.init_after_data(o::T1,  c::T2)  where {T1 <: CandleType, T2 <: CandleType} = UniversalStruct.init(T2, o.set, o.exchange, o.market, o.is_futures, o.candle_type, o.candle_value, last(c.timestamps),  last(o.timestamps))
-
-
-UniversalStruct.append(o::T1, c::T2) where {T1 <: CandleType, T2 <: CandleType} = append!(o, c)
-append!(o::T1, c::T2)                where {T1 <: CandleType, T2 <: CandleType} = begin 
-	if o.t[end]==c.t[1]
-		o.t = vcat(o.t[1:end-1], c.t)
-		o.o = vcat(o.o[1:end-1], c.o)
-		o.h = vcat(o.h[1:end-1], c.h)
-		o.l = vcat(o.l[1:end-1], c.l)
-		o.c = vcat(o.c[1:end-1], c.c)
-		o.v = vcat(o.v[1:end-1], c.v)
-	else
-		o.t = vcat(o.t, c.t) # TODO... this seems bad!!
-		o.o = vcat(o.o, c.o)
-		o.h = vcat(o.h, c.h)
-		o.l = vcat(o.l, c.l)
-		o.c = vcat(o.c, c.c)
-		o.v = vcat(o.v, c.v)
-	end
-	o.timestamps = first(o.timestamps):last(c.timestamps)
-	return o
+Extend an existing OHLCV object with new data up to the specified timestamp.
+"""
+function extend_ohlcv!(ohlcv::T, to_time::Int) where T <: CandleType
+    # If we're already up to date, return early
+    if !isempty(ohlcv.t) && last(ohlcv.t) >= to_time
+        return ohlcv
+    end
+    
+    # Determine the start time for the new data
+    start_time = isempty(ohlcv.t) ? day_to_timestamp(ohlcv.config.from_day) : last(ohlcv.t) + 1
+    
+    # Get candle type for query
+    candle = ohlcv.config.timeframe
+    
+    # Query new data
+    if startswith(candle, "tick")
+        new_o, new_h, new_l, new_c, new_v, new_t, new_misses = dwnl_tick_data(
+            ohlcv.config.market, ohlcv.config.is_futures, start_time, to_time
+        )
+    else
+        new_o, new_h, new_l, new_c, new_v, new_t, new_misses = dwnl_candle_data(
+            ohlcv.config.market, ohlcv.config.is_futures, start_time, to_time, candle
+        )
+    end
+    
+    # If we got new data, append it
+    if !isempty(new_t)
+        ohlcv.t = vcat(ohlcv.t, new_t)
+        ohlcv.o = vcat(ohlcv.o, new_o)
+        ohlcv.h = vcat(ohlcv.h, new_h)
+        ohlcv.l = vcat(ohlcv.l, new_l)
+        ohlcv.c = vcat(ohlcv.c, new_c)
+        ohlcv.v = vcat(ohlcv.v, new_v)
+        ohlcv.misses = vcat(ohlcv.misses, new_misses)
+    end
+    
+    return ohlcv
 end
 
-UniversalStruct.cut_requested!(o::T1, c::T2)    where {T1 <: CandleType, T2 <: CandleType} = return if o.candle_type in [:SECOND,:MINUTE,:HOUR,:DAY]
-	cut_data_1m!(o, c)
-else
-	cut_data_tick!(o, c)
+"""
+    get_cache_path(ohlcv::CandleType)
+
+Generate a cache file path for an OHLCV object.
+"""
+function get_cache_path(ohlcv::T) where T <: CandleType
+    dir = joinpath(ohlcv.config.data_path, ohlcv.config.exchange)
+    mkpath(dir)
+    
+    # Format: exchange_market_candle_futures.jld2
+    futures_str = ohlcv.config.is_futures ? "_futures" : "_spot"
+    filename = "$(ohlcv.config.exchange)_$(ohlcv.config.market)_$(ohlcv.config.timeframe)$(futures_str).jld2"
+    return joinpath(dir, filename)
 end
 
-cut_data_1m!(o, c) = begin
-	min_candle_value = 60_000
-	o_fr, o_to = first(o.timestamps), last(o.timestamps)
-	c_fr       = c.t[1] # first(c.timestamps)
+"""
+    save_ohlcv_cache(ohlcv::CandleType)
 
-	offset = cld(o_fr - c_fr, min_candle_value)
-	endset = cld(o_to - o_to%min_candle_value - c_fr, min_candle_value)
-	# @show first(c.timestamps)%min_candle_value
-	# @show o.timestamps
-	# @show c.timestamps
-	# @show -(c_fr-o_to)/min_candle_value
-	# @show c.t[end-30:end]
-	# @display unix2datetime.(c.t[end-7:end]./1000)
-	# @show (c.t[1])
-	# @show (c.t[offset])
-	# @show (c.t[end])
-	# @show (1640619660-c_fr)
-	# @show (c.t[offset])
-	# @show (c.t[end])
-	# @show unix2datetime(c_fr)
-	# @show unix2datetime(o_fr)
-	# @show unix2datetime(o_to)
-	# @show unix2datetime(c.t[1]./1000)
-	# @show unix2datetime(c.t[1+offset]./1000)
-	# @show unix2datetime(c.t[endset]./1000)
-	# @show unix2datetime(c.t[end]./1000)
-	# @show all(c.t[2:end].- c.t[1:end-1].==60000)
-	# @show o.t
-	# @show offset.-1149500
-	# @show endset.-1149500
-	# @show (endset-offset)./60
-	@assert endset<=length(c.h) "how can this be bigger?? $(endset), $(length(c.h))"
-	
-	o.t = c.t[1+offset:endset]
-	o.o = c.o[1+offset:endset]
-	o.h = c.h[1+offset:endset]
-	o.l = c.l[1+offset:endset]
-	o.c = c.c[1+offset:endset]
-	o.v = c.v[1+offset:endset]
-	o
+Save OHLCV data to cache file.
+"""
+function save_ohlcv_cache(ohlcv::T) where T <: CandleType
+    filepath = get_cache_path(ohlcv)
+    
+    # Save to JLD2 file
+    jldopen(filepath, "w") do file
+        file["ohlcv"] = ohlcv
+        file["last_updated"] = now(UTC)
+    end
+    
+    return filepath
 end
 
-cut_data_tick!(o, c) = begin
-	o_fr, o_to = first(o.timestamps), last(o.timestamps)
-	offset = 1
-	endset = length(c.t)
-	while c.t[offset] < o_fr && offset < endset
-		offset+=1; end
-	while c.t[endset] > o_to && endset > offset-1
-		endset-=1; end
-	
-	o.t = c.t[offset:endset]
-	o.o = c.o[offset:endset]
-	o.h = c.h[offset:endset]
-	o.l = c.l[offset:endset]
-	o.c = c.c[offset:endset]
-	o.v = c.v[offset:endset]
-	o
+"""
+    load_ohlcv_cache(exchange, market, timeframe, is_futures)
+
+Load OHLCV data from cache if available.
+"""
+function load_ohlcv_cache(exchange, market, timeframe, is_futures)
+    # Create a temporary OHLCV object to get the cache path
+    config = OHLCVConfig(
+        exchange = exchange,
+        market = market,
+        is_futures = is_futures,
+        timeframe = timeframe
+    )
+    
+    temp_ohlcv = OHLCV(config = config)
+    
+    filepath = get_cache_path(temp_ohlcv)
+    
+    if isfile(filepath)
+        try
+            return jldopen(filepath, "r") do file
+                file["ohlcv"]::OHLCV
+            end
+        catch e
+            @warn "Failed to load cache file: $filepath" exception=e
+        end
+    end
+    
+    return nothing
 end
 
+"""
+    check_and_extend_cache!(ohlcv::CandleType, fr::Int, to::Int)
+
+Check if the OHLCV data covers the requested time range, and extend if needed.
+"""
+function check_and_extend_cache!(ohlcv::T, fr::Int, to::Int) where T <: CandleType
+    # If data is empty, download the full range
+    if isempty(ohlcv.t)
+        extend_ohlcv!(ohlcv, to)
+        save_ohlcv_cache(ohlcv)
+        return ohlcv
+    end
+    
+    # Check if we need to extend the data
+    data_start = first(ohlcv.t)
+    data_end = last(ohlcv.t)
+    
+    # Extend backward if needed
+    if fr < data_start
+        # For simplicity, we'll redownload the entire range if we need earlier data
+        @info "Extending data backward from $(unix2datetime(data_start ÷ 1000)) to $(unix2datetime(fr ÷ 1000))"
+        
+        candle = ohlcv.config.timeframe
+        if startswith(candle, "tick")
+            new_o, new_h, new_l, new_c, new_v, new_t, new_misses = dwnl_tick_data(
+                ohlcv.config.market, ohlcv.config.is_futures, fr, data_start - 1
+            )
+        else
+            new_o, new_h, new_l, new_c, new_v, new_t, new_misses = dwnl_candle_data(
+                ohlcv.config.market, ohlcv.config.is_futures, fr, data_start - 1, candle
+            )
+        end
+        
+        if !isempty(new_t)
+            # Prepend the new data
+            ohlcv.t = vcat(new_t, ohlcv.t)
+            ohlcv.o = vcat(new_o, ohlcv.o)
+            ohlcv.h = vcat(new_h, ohlcv.h)
+            ohlcv.l = vcat(new_l, ohlcv.l)
+            ohlcv.c = vcat(new_c, ohlcv.c)
+            ohlcv.v = vcat(new_v, ohlcv.v)
+            ohlcv.misses = vcat(new_misses, ohlcv.misses)
+        end
+    end
+    
+    # Extend forward if needed
+    if to > data_end
+        @info "Extending data forward from $(unix2datetime(data_end ÷ 1000)) to $(unix2datetime(to ÷ 1000))"
+        extend_ohlcv!(ohlcv, to)
+    end
+    
+    # Update config from_day and to_day based on actual data
+    ohlcv.config.from_day = timestamp_to_day(first(ohlcv.t))
+    ohlcv.config.to_day = timestamp_to_day(last(ohlcv.t))
+    
+    # Save updated cache
+    save_ohlcv_cache(ohlcv)
+    
+    return ohlcv
+end

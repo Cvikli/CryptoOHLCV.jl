@@ -1,45 +1,45 @@
 
-UniversalStruct.init(TYPE::Type{T}, set, exchange, market, is_futures, candle_type, candle_value, fr, to) where T <: CandleType = begin
-	@assert datetime2unix(now(UTC))*1000 + 1000 > to "We want to query data from the future... please be careful: NOW: $(now(UTC)) TO: $(unix2datetime(to ÷ 1000))" 
-	@assert fr < to "Wrong dates: from $fr to $to is wrong as it is: $(to-fr) time"
-	TYPE(timestamps = fr:to
-			;set, exchange, market, is_futures, candle_type, candle_value,
-	)
-end
 
 
-UniversalStruct.load_data!(o::T) where T <: CandleType = o.candle_type in [
-		:TICK, 
-	] ? load_new_tick_data(o) : load_new_minute_data(o)
-
-	
 extend(d::T, o, h, l, c, v, OHLCV_time, misses) where T <: CandleType = begin
-	d.t      = !isempty(d.t)      ? vcat(d.t,OHLCV_time)  : OHLCV_time
-	d.misses = !isempty(d.misses) ? vcat(d.misses,misses) : misses
-	d.o,d.h,d.l,d.c,d.v = o, h, l, c, v
+    d.t      = !isempty(d.t)      ? vcat(d.t,OHLCV_time)  : OHLCV_time
+    d.misses = !isempty(d.misses) ? vcat(d.misses,misses) : misses
+    d.o,d.h,d.l,d.c,d.v = o, h, l, c, v
 end
-	
-load_new_minute_data(d) = begin
-	o_fr, o_to = first(d.timestamps), last(d.timestamps)
-	if d.exchange !== "binance"
-    o, h, l, c, v, t, misses = dwnl_data_ccxt("$(d.exchange):$(d.market):$(d.isfutures)", o_fr, o_to, "1m", d.context.now_ts)
-	else
-		o, h, l, c, v, t, misses = dwnl_minute_data(d.market, d.is_futures, o_fr, o_to)
-	end
-	extend(d, o, h, l, c, v, t, misses)
-	d
-end
-load_new_tick_data(d) = begin
-	o_fr, o_to = first(d.timestamps), last(d.timestamps)
-	if d.exchange !== "binance"
-    o, h, l, c, v, t, misses = dwnl_tick_ccxt("$(exchange):$(market):$(isfutures)", start_date, end_date, "tick", d.context.now_ts)
-	else
-		o, h, l, c, v, t, misses = dwnl_tick_data(d.market, d.is_futures, o_fr, o_to)
-	end
-	extend(d, o, h, l, c, v, t, misses)
-	d
+    
+load_new_candle_data(d) = begin
+    o_fr, o_to = first(d.timestamps), last(d.timestamps)
+    candle = reverse_parse_candle(d)
+    o, h, l, c, v, t, misses = dwnl_candle_data(d.market, d.is_futures, o_fr, o_to, candle)
+    extend(d, o, h, l, c, v, t, misses)
+    d
 end
 
+load_new_tick_data(d) = begin
+    o_fr, o_to = first(d.timestamps), last(d.timestamps)
+    o, h, l, c, v, t, misses = dwnl_tick_data(d.market, d.is_futures, o_fr, o_to)
+    extend(d, o, h, l, c, v, t, misses)
+    d
+end
+
+dwnl_candle_data(market, isfutures, start_date, end_date, candle="1m") = begin
+    metric = candle2metric(candle)
+    misses = UnitRange{Int}[]
+    market_data = query_klines(replace(market, "_"=>""), candle, start_date, end_date, isfutures ? Val(:FUTURES) : Val(:SPOT))
+    o, h, l, c, v, t = marketdata2ohlcvt(market_data)
+    (o, h, l, c, v), misses, t = interpolate_missing((o, h, l, c, v), t, metric*1000)
+    return o, h, l, c, v, t, misses
+end
+
+dwnl_tick_data(market, isfutures, start_date, end_date) = begin
+    misses = UnitRange{Int}[]
+    tick_raw = query_ticks(market, isfutures, start_date, end_date)
+    id, t, c, v = tick_raw
+    o=[c[1];c[1:end-1]]
+    h=max.(o,c)
+    l=min.(o,c)
+    return o, h, l, c, v, t, misses
+end
 
 dwnl_minute_data(market, isfutures, start_date, end_date) = begin
 	metric = candle2metric("1m")
@@ -50,15 +50,6 @@ dwnl_minute_data(market, isfutures, start_date, end_date) = begin
 	return o, h, l, c, v, t, misses
 end
 
-dwnl_tick_data(market, isfutures, start_date, end_date) = begin
-	misses = UnitRange{Int}[]
-	tick_raw = query_ticks(market, isfutures, start_date, end_date)
-	id, t, c, v = tick_raw
-	o=[c[1];c[1:end-1]]
-	h=max.(o,c)
-	l=min.(o,c)
-	return o, h, l, c, v, t, misses
-end
 dwnl_data_ccxt(src, start_date, end_date, candle, ct_now) = @assert false "unimplemented... I need to copy this yet..."
 dwnl_tick_ccxt(src, start_date, end_date, candle, ct_now) = @assert false "unimplemented... I need to copy this yet..."
 
@@ -104,4 +95,4 @@ postprocess_ohlcv!(o::T, need_cut=false) where T <: CandleType = if o.candle_typ
 		# @display [unix2datetime.(floor.([Int64], o.t ./ 1000)) o.c]
 		@assert  all(o.t[2:end] .- o.t[1:end-1] .== o.candle_value*1000) "$(o.t[2:end] .- o.t[1:end-1])  ?== $(o.candle_value*1000)"
 	end
-+	
++

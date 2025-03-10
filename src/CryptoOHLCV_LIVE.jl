@@ -8,7 +8,8 @@ are_there_gap!(c::C, new_ts::Int64,       time_frame) where C <: CandleType = be
 		@info "GAP in the system: $(c_tsend) - $(new_ts) -> $((new_ts - c_tsend) / CANDLE_TO_MS[time_frame])"
 		@info "We are filling it."
 		# +CANDLE_TO_MS["1m"]
-		miss = UniversalStruct.load(C, :validation, c.exchange, c.market, c.is_futures, c.candle_type, c.candle_value, c_tsend+1, new_ts)
+		@assert false "TODO: Implement this!"
+		miss = :TODO # UniversalStruct.load(C, :validation, c.exchange, c.market, c.is_futures, c.candle_type, c.candle_value, c_tsend+1, new_ts)
 		postprocess_ohlcv!(miss)
 		any(c.t[end] === t for t in miss.t) && @warn  "We have duplicated timestamps in the miss! $([(i,tx) for (i,tx) in enumerate(miss.t) if c.t[end] === tx])"
 		miss.o = miss.o[miss.t .> c.t[end]]
