@@ -26,7 +26,10 @@ d.c
 using CryptoOHLCV
 d= ohlcv"BTC_USDT@1m:futures|1715056901*1715166900"
 #%%
-dd= ohlcv"BTC_USDT@1m:futures|1715056901*1715166900"
+using CryptoOHLCV: get_ohlcv
+
+to_ts = 1715166900
+dd= get_ohlcv("BTC_USDT@1m:futures|1715056901*$(to_ts)")
 #%%
 d.t
 @sizes d.t

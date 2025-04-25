@@ -14,8 +14,8 @@ Revise = "295af30f-e4ad-537b-8983-00126c2a3abe"
 UniversalStruct = "c23d0e24-ccd8-4f5c-94ed-3654aae86e4b"
 
 [compat]
-BoilerplateCvikli = "1.1"
 Dates = "1.11"
 HTTP = "1.10"
-JSON3 = "1.14"
 Revise = "3.7"
+JSON3 = "1.14"
+BoilerplateCvikli = "1.1"
