@@ -17,25 +17,18 @@ end
 
 load_data!(o::T) where T <: CandleType = o.candle_type in [ :TICK, :TICK_MMM, :TICK_STONE ] ? load_new_tick_data(o) : load_new_minute_data(o)
 	
-append_data_raw(d::T, o, h, l, c, v, OHLCV_time, misses) where T <: CandleType = begin
-	d.t      = !isempty(d.t)      ? vcat(d.t,OHLCV_time)  : OHLCV_time
-	d.misses = !isempty(d.misses) ? vcat(d.misses,misses) : misses
-	d.o,d.h,d.l,d.c,d.v = o, h, l, c, v
-end
-	
 load_new_minute_data(d) = begin
 	o_fr, o_to = first(d.timestamps), last(d.timestamps)
 	o, h, l, c, v, t, misses = dwnl_minute_binance(d.market, d.is_futures, o_fr, o_to)
-	append_data_raw(d, o, h, l, c, v, t, misses)
+	d.t, d.o,d.h,d.l,d.c,d.v, d.misses = o, h, l, c, v, t, misses
 	d
 end
 load_new_tick_data(d) = begin
 	o_fr, o_to = first(d.timestamps), last(d.timestamps)
 	o, h, l, c, v, t, misses = dwnl_tick_binance(d.market, d.is_futures, o_fr, o_to)
-	append_data_raw(d, o, h, l, c, v, t, misses)
+	d.t, d.o,d.h,d.l,d.c,d.v, d.misses = o, h, l, c, v, t, misses
 	d
 end
-
 
 dwnl_minute_binance(market, isfutures, start_date, end_date) = begin
 	metric = candle2metric("1m")
@@ -58,7 +51,7 @@ end
 dwnl_data_ccxt(src, start_date, end_date, candle, ct_now) = @assert false "unimplemented... I need to copy this yet..."
 dwnl_tick_ccxt(src, start_date, end_date, candle, ct_now) = @assert false "unimplemented... I need to copy this yet..."
 
-function cut_data_to_day!(ohlcv)
+function trim_data_to_day!(ohlcv)
   ts = ohlcv.t
   metric = (ts[2] - ts[1]) ÷ 1000
 	date = unix2datetime(ts[1] ÷ 1000)
@@ -71,7 +64,8 @@ function cut_data_to_day!(ohlcv)
   cut_size = Int(ceil((next_day_start_unix*1000 - ts[1]) / (metric*1000))) + 1
 	ohlcv.o, ohlcv.h, ohlcv.l, ohlcv.c, ohlcv.v, ohlcv.t = ohlcv.o[cut_size:end], ohlcv.h[cut_size:end], ohlcv.l[cut_size:end], ohlcv.c[cut_size:end], ohlcv.v[cut_size:end], ohlcv.t[cut_size:end] 
 end
-postprocess_ohlcv!(o::T, need_cut=false) where T <: CandleType = if o.candle_type in 
+
+postprocess_ohlcv!(o::T; trim_to_date=false) where T <: CandleType = if o.candle_type in 
 		[
 			:TICK, 
 			:TICK_MMM, :TICK_STONE
@@ -96,7 +90,7 @@ postprocess_ohlcv!(o::T, need_cut=false) where T <: CandleType = if o.candle_typ
 		# @display [unix2datetime.(floor.([Int64], o.t ./ 1000)) o.c]
 		@assert  all(o.t[2:end] .- o.t[1:end-1] .== 60_000) "$(o.t[2:end] .- o.t[1:end-1])  ?== $(60_000)"
 		(o.o, o.h, o.l, o.c, o.v), o.t = combine_klines_fast(o, metric_round, offset)
-		need_cut && cut_data_to_day!(o)
+		trim_to_date && trim_data_to_day!(o)
 		# @display [unix2datetime.(floor.([Int64], o.t ./ 1000)) o.c]
 		@assert  all(o.t[2:end] .- o.t[1:end-1] .== o.candle_value*1000) "$(o.t[2:end] .- o.t[1:end-1])  ?== $(o.candle_value*1000)"
 	end

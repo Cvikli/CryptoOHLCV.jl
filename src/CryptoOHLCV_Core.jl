@@ -4,7 +4,7 @@ const ohlcv_load = Dict{Tuple{DataType, Symbol, String, String, Bool, Symbol, In
 function get_cache(key)
 	return key in keys(ohlcv_load) ? ohlcv_load[key] : (ohlcv_load[key] = begin
 		x = load(init(key...))
-		postprocess_ohlcv!(x, true)
+		postprocess_ohlcv!(x)
 		x
 	end)
 end
