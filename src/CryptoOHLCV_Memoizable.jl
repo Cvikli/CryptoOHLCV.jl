@@ -44,7 +44,7 @@ parse_range(rang) = begin
 end
 daystyle(range::UnitRange{Int})     = "$(first(range))*$(last(range))"
 
-unique_key(TYPE::Type{T}, set, src, ctxt) where T <: CandleType = begin
+get_unique_data_key(TYPE::Type{T}, set, src, ctxt) where T <: CandleType = begin
 	source, tframe = '|' in src ? parse_range(String.(split(src,'|'))) : (src, ctxt.timestamps)
 	exchange, marketframe, is_futures = parse_source(source, ctxt)
 	market, candle = '@' in marketframe ? String.(split((marketframe),"@"))  : (ctxt.market, marketframe)

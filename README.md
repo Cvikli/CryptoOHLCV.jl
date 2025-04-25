@@ -1,6 +1,5 @@
 # CryptoOHLCV.jl
 Simplest Crypto Data management. 
-Built upon [UltimateStruct.jl](https://github.com/Cvikli/UniversalStruct.jl).
 
 ```julia
 using CryptoOHLCV

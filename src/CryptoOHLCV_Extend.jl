@@ -1,15 +1,28 @@
 
 
 
+extend!(obj,c_obj)                           = merge(data_before(obj, c_obj), c_obj, data_after(c_obj, obj))
+merge(before,         cached,after)          = append!(append!(before,cached),after), true
+merge(before::Nothing,cached,after)          = append!(cached,after), true
+merge(before,         cached,after::Nothing) = append!(before,cached), true
+merge(before::Nothing,cached,after::Nothing) = cached, false
 
-UniversalStruct.need_data_before(o::T1, c::T2)  where {T1 <: CandleType, T2 <: CandleType}= first(o.timestamps) < first(c.timestamps)
-UniversalStruct.need_data_after(o::T1,  c::T2)  where {T1 <: CandleType, T2 <: CandleType}= last(c.timestamps)  < last(o.timestamps)
 
-UniversalStruct.init_before_data(o::T1, c::T2)  where {T1 <: CandleType, T2 <: CandleType} = UniversalStruct.init(T1, o.set, o.exchange, o.market, o.is_futures, o.candle_type, o.candle_value, first(o.timestamps), first(c.timestamps))
-UniversalStruct.init_after_data(o::T1,  c::T2)  where {T1 <: CandleType, T2 <: CandleType} = UniversalStruct.init(T2, o.set, o.exchange, o.market, o.is_futures, o.candle_type, o.candle_value, last(c.timestamps),  last(o.timestamps))
+######### Optionalble Redefineable Interfaces
+append!(before,          after::Nothing) = before 
+append!(before::Nothing, after)          = after
+
+data_before(obj, c)         = need_data_before(obj,c) ? load_data!(init_before_data(obj,c)) : nothing
+data_after(c,  obj)         = need_data_after(obj,c)  ? load_data!(init_after_data(obj,c))  : nothing
 
 
-UniversalStruct.append(o::T1, c::T2) where {T1 <: CandleType, T2 <: CandleType} = append!(o, c)
+need_data_before(o::T1, c::T2)  where {T1 <: CandleType, T2 <: CandleType} = first(o.timestamps) < first(c.timestamps)
+need_data_after(o::T1,  c::T2)  where {T1 <: CandleType, T2 <: CandleType} = last(c.timestamps)  < last(o.timestamps)
+
+init_before_data(o::T1, c::T2)  where {T1 <: CandleType, T2 <: CandleType} = init(T1, o.set, o.exchange, o.market, o.is_futures, o.candle_type, o.candle_value, first(o.timestamps), first(c.timestamps))
+init_after_data(o::T1,  c::T2)  where {T1 <: CandleType, T2 <: CandleType} = init(T2, o.set, o.exchange, o.market, o.is_futures, o.candle_type, o.candle_value, last(c.timestamps),  last(o.timestamps))
+
+
 append!(o::T1, c::T2)                where {T1 <: CandleType, T2 <: CandleType} = begin 
 	if o.t[end]==c.t[1]
 		o.t = vcat(o.t[1:end-1], c.t)
@@ -30,7 +43,7 @@ append!(o::T1, c::T2)                where {T1 <: CandleType, T2 <: CandleType} 
 	return o
 end
 
-UniversalStruct.cut_requested!(o::T1, c::T2)    where {T1 <: CandleType, T2 <: CandleType} = return if o.candle_type in [:SECOND,:MINUTE,:HOUR,:DAY]
+cut_requested!(o::T1, c::T2)    where {T1 <: CandleType, T2 <: CandleType} = return if o.candle_type in [:SECOND,:MINUTE,:HOUR,:DAY]
 	cut_data_1m!(o, c)
 else
 	cut_data_tick!(o, c)

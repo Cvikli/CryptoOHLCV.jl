@@ -1,7 +1,6 @@
 # dev ./CryptoOHLCV
 using RelevanceStacktrace
 using BoilerplateCvikli
-using Revise
 using UniversalStruct
 using CryptoOHLCV
 # ctx.source   = "binance:BNB_BTC:futures"
@@ -24,7 +23,9 @@ d= ohlcv"tick500|1711400700000*1711411200000"
 d.c
 #%%
 using CryptoOHLCV
-d= ohlcv"BTC_USDT@1m:futures|1715056901*1715166900"
+d= ohlcv"BTC_USDT@1m:futures|1705056901*1715166900"
+#%%
+d.t
 #%%
 using CryptoOHLCV: get_ohlcv
 

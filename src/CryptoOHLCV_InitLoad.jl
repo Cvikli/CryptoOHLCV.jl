@@ -1,5 +1,6 @@
 
-UniversalStruct.init(TYPE::Type{T}, set, exchange, market, is_futures, candle_type, candle_value, fr, to) where T <: CandleType = begin
+
+init(TYPE::Type{T}, set, exchange, market, is_futures, candle_type, candle_value, fr, to) where T <: CandleType = begin
 	@assert datetime2unix(now(UTC))*1000 + 1000 > to "We want to query data from the future... please be careful: NOW: $(now(UTC)) TO: $(unix2datetime(to ÷ 1000))" 
 	@assert fr < to "Wrong dates: from $fr to $to is wrong as it is: $(to-fr) time"
 	TYPE(timestamps = fr:to
@@ -8,10 +9,13 @@ UniversalStruct.init(TYPE::Type{T}, set, exchange, market, is_futures, candle_ty
 end
 
 
-UniversalStruct.load_data!(o::T) where T <: CandleType = o.candle_type in [
-		:TICK, 
-	] ? load_new_tick_data(o) : load_new_minute_data(o)
-
+load_data!(o::T) where T <: CandleType = o.candle_type in [ :TICK, :TICK_MMM, :TICK_STONE ] ? load_new_tick_data(o) : load_new_minute_data(o)
+load(obj::T)                           where T <: Universal        = begin # we could pass args and kw_args too...
+	c = load_disk(obj)
+	c, needsave = !isa(c, Nothing) ? extend!(obj,c) : (load_data!(obj), true)
+	needsave && save_disk(c, !isa(c, Nothing))
+	cut_requested!(obj, c)
+end
 	
 extend(d::T, o, h, l, c, v, OHLCV_time, misses) where T <: CandleType = begin
 	d.t      = !isempty(d.t)      ? vcat(d.t,OHLCV_time)  : OHLCV_time
@@ -21,27 +25,19 @@ end
 	
 load_new_minute_data(d) = begin
 	o_fr, o_to = first(d.timestamps), last(d.timestamps)
-	if d.exchange !== "binance"
-    o, h, l, c, v, t, misses = dwnl_data_ccxt("$(d.exchange):$(d.market):$(d.isfutures)", o_fr, o_to, "1m", d.context.now_ts)
-	else
-		o, h, l, c, v, t, misses = dwnl_minute_data(d.market, d.is_futures, o_fr, o_to)
-	end
+	o, h, l, c, v, t, misses = dwnl_minute_binance(d.market, d.is_futures, o_fr, o_to)
 	extend(d, o, h, l, c, v, t, misses)
 	d
 end
 load_new_tick_data(d) = begin
 	o_fr, o_to = first(d.timestamps), last(d.timestamps)
-	if d.exchange !== "binance"
-    o, h, l, c, v, t, misses = dwnl_tick_ccxt("$(exchange):$(market):$(isfutures)", start_date, end_date, "tick", d.context.now_ts)
-	else
-		o, h, l, c, v, t, misses = dwnl_tick_data(d.market, d.is_futures, o_fr, o_to)
-	end
+	o, h, l, c, v, t, misses = dwnl_tick_binance(d.market, d.is_futures, o_fr, o_to)
 	extend(d, o, h, l, c, v, t, misses)
 	d
 end
 
 
-dwnl_minute_data(market, isfutures, start_date, end_date) = begin
+dwnl_minute_binance(market, isfutures, start_date, end_date) = begin
 	metric = candle2metric("1m")
 	misses = UnitRange{Int}[]
 	market_data                = query_klines(replace(market, "_"=>""), "1m", start_date, end_date, isfutures ? Val(:FUTURES) : Val(:SPOT));
@@ -50,7 +46,7 @@ dwnl_minute_data(market, isfutures, start_date, end_date) = begin
 	return o, h, l, c, v, t, misses
 end
 
-dwnl_tick_data(market, isfutures, start_date, end_date) = begin
+dwnl_tick_binance(market, isfutures, start_date, end_date) = begin
 	misses = UnitRange{Int}[]
 	tick_raw = query_ticks(market, isfutures, start_date, end_date)
 	id, t, c, v = tick_raw
