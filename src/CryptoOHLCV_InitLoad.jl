@@ -17,7 +17,7 @@ end
 
 load_data!(o::T) where T <: CandleType = o.candle_type in [ :TICK, :TICK_MMM, :TICK_STONE ] ? load_new_tick_data(o) : load_new_minute_data(o)
 	
-extend(d::T, o, h, l, c, v, OHLCV_time, misses) where T <: CandleType = begin
+append_data_raw(d::T, o, h, l, c, v, OHLCV_time, misses) where T <: CandleType = begin
 	d.t      = !isempty(d.t)      ? vcat(d.t,OHLCV_time)  : OHLCV_time
 	d.misses = !isempty(d.misses) ? vcat(d.misses,misses) : misses
 	d.o,d.h,d.l,d.c,d.v = o, h, l, c, v
@@ -26,13 +26,13 @@ end
 load_new_minute_data(d) = begin
 	o_fr, o_to = first(d.timestamps), last(d.timestamps)
 	o, h, l, c, v, t, misses = dwnl_minute_binance(d.market, d.is_futures, o_fr, o_to)
-	extend(d, o, h, l, c, v, t, misses)
+	append_data_raw(d, o, h, l, c, v, t, misses)
 	d
 end
 load_new_tick_data(d) = begin
 	o_fr, o_to = first(d.timestamps), last(d.timestamps)
 	o, h, l, c, v, t, misses = dwnl_tick_binance(d.market, d.is_futures, o_fr, o_to)
-	extend(d, o, h, l, c, v, t, misses)
+	append_data_raw(d, o, h, l, c, v, t, misses)
 	d
 end
 
