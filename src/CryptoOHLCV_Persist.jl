@@ -1,6 +1,9 @@
 
 
 
+using JLD2
+using Glob
+
 folder(o::T)          where T <: CandleType = "$(o.data_path)"
 glob_pattern(o::T)    where T <: CandleType = "OHLCV_$(o.exchange)_$(o.market)_$(isfutures_str(o.is_futures))_$(metric2candle(o.candle_type, o.candle_value))_*-*.jld2" # throw("Unimplemented... So basically to get the files list it is advised for you to build this.") #"$(T)_$(obj.config)_*_*"*".jld2"
 unique_filename(o::T) where T <: CandleType = "OHLCV_$(o.exchange)_$(o.market)_$(isfutures_str(o.is_futures))_$(metric2candle(o.candle_type, o.candle_value))_$(first(o.timestamps))-$(last(o.timestamps)).jld2" 
@@ -15,27 +18,22 @@ score(data::Tuple{String,String,Bool,String,Int,Int}) = begin # we specify types
 	return to - fr
 end
 
-
-
-
-using JLD2
-using Glob
-
-load_disk(file_name::String)           = return JLD2.load(file_name, "cached") 
-load_disk(obj)                         = return 0<length((files=list_files(obj);)) ? JLD2.load(largest(files), "cached") : nothing
-save_disk(obj, needclean=true)         = (needclean && clean_files(list_files(obj));                JLD2.save(ensure_folder(obj) * unique_filename(obj), "cached", obj); obj)
-save_disk_SAFE(obj, needclean=true)    = (needclean && clean_files(excluded_best(list_files(obj))); JLD2.save(ensure_folder(obj) * unique_filename(obj), "cached", obj); obj)
-
-
+load_disk(file_name::String)            = JLD2.load(file_name, "cached") 
+load_disk(obj::T) where T <: CandleType = begin
+	files = list_files(obj)
+	return 0<length(files) ? load_disk(largest(files)) : nothing
+end
+save_disk(obj; needclean=true)          = begin
+	needclean && clean_files(list_files(obj))
+	JLD2.save(ensure_folder(obj) * unique_filename(obj), "cached", obj)
+end
 
 # Helper functions
 list_files(obj)                        = glob(glob_pattern(obj), ensure_folder(obj))
-TOP1_idx(files::Vector{String})        = argmax(score.(parse_args.(parse_filename.(files))))
-excluded_best(files::Vector{String})   = (top_idx = TOP1_idx(files); [files[i] for i in 1:length(files) if i !==top_idx])  # IF WE would like to be VERY safe... then we can keep the last 2 version!
+TOP1_idx(files::Vector{String})        = argmax(score.(parse_args.(files)))
 largest(files::Vector{String})         = files[TOP1_idx(files)]
 endwithslash(dir)                      = ((dir[end] !== '/' && println("we add a slash to the end of the folder: ", dir ," appended: '/'")); return dir[end] == '/' ? dir : dir*"/")
-ensure_folder(obj)                       = (mkfolder_if_not_exist((foldname=endwithslash(folder(obj));)); return foldname)
-
+ensure_folder(obj)                     = mkfolder_if_not_exist(endwithslash(folder(obj)))
 
 # Utils
 strip_jld2(fname::String)              = fname[1:end-5]
@@ -48,5 +46,6 @@ mkfolder_if_not_exist(fname::String)   = begin
 		dir in [".", ""] && continue
 		!isdir(whole_dir) && mkdir(whole_dir)
 	end
+	fname
 end
 

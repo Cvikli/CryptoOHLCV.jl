@@ -8,6 +8,7 @@ module_directory = string(string(@__FILE__)[1:end-14]) # hardcoded... so basical
 
 # TODO LIVE... so "from_timestamp" -> "datetime2unix(now())"
 @kwdef mutable struct OHLCVConfig
+	min_candle_value = 60_000
 
 	# use_cache::Bool   = true 
 	use_cache::Bool   = false 

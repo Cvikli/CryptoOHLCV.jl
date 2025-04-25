@@ -9,9 +9,7 @@ function get_cache(key)
 	end)
 end
 
-get_ohlcv(source, context=ctx) = begin
-	get_cache(get_unique_data_key(OHLCV, :TRAIN, source, context))
-end
+get_ohlcv(source, context=ctx) = get_cache(get_unique_data_key(OHLCV, :TRAIN, source, context))
 macro ohlcv_str(source); get_ohlcv(source); end
 
 get_ohlcv_v(source, context=ctx) = begin

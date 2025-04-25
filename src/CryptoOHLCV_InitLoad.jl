@@ -8,14 +8,14 @@ init(TYPE::Type{T}, set, exchange, market, is_futures, candle_type, candle_value
 	)
 end
 
-
-load_data!(o::T) where T <: CandleType = o.candle_type in [ :TICK, :TICK_MMM, :TICK_STONE ] ? load_new_tick_data(o) : load_new_minute_data(o)
-load(obj::T)                           where T <: Universal        = begin # we could pass args and kw_args too...
+load(obj::T)                           where T <: CandleType        = begin # we could pass args and kw_args too...
 	c = load_disk(obj)
 	c, needsave = !isa(c, Nothing) ? extend!(obj,c) : (load_data!(obj), true)
-	needsave && save_disk(c, !isa(c, Nothing))
-	cut_requested!(obj, c)
+	needsave && save_disk(c, need_clean=!isa(c, Nothing))
+	trim_to_requested_range!(obj, c)
 end
+
+load_data!(o::T) where T <: CandleType = o.candle_type in [ :TICK, :TICK_MMM, :TICK_STONE ] ? load_new_tick_data(o) : load_new_minute_data(o)
 	
 extend(d::T, o, h, l, c, v, OHLCV_time, misses) where T <: CandleType = begin
 	d.t      = !isempty(d.t)      ? vcat(d.t,OHLCV_time)  : OHLCV_time
@@ -78,12 +78,12 @@ postprocess_ohlcv!(o::T, need_cut=false) where T <: CandleType = if o.candle_typ
 		]
 		@warn "from and to date isn't supported for tick data!! todo"
 		# all_data = refresh_tick_data(  o.exchange, o.market, o.is_futures, first(o.timestamps), last(o.timestamps))
-		# cut_data_tick!(o, all_data)
-		# cut_data_tick!(o, c)
+		# trim_tick_data!(o, all_data)
+		# trim_tick_data!(o, c)
 		(o.o, o.h, o.l, o.c, o.v), o.t = combine_klines_fast_tick(o, o.candle_value, Val(o.candle_type))
 	else
 		# all_data = refresh_minute_data(o.exchange, o.market, o.is_futures, first(o.timestamps), last(o.timestamps))
-		# cut_data_1m!(o, all_data)
+		# trim_1m_data!(o, all_data)
 
 		@assert o.candle_value>=60 "We cannot handle things under 1min(60s) d.candle_value=$(o.candle_value)"
 		fr     = first(o.timestamps)
@@ -91,7 +91,7 @@ postprocess_ohlcv!(o::T, need_cut=false) where T <: CandleType = if o.candle_typ
 		offset = cld(ceil_ts(fr, o.candle_value*1000)-ceil_ts(fr,60_000),60_000)
 		@assert 60_000 == o.t[2]-o.t[1] "We have not tested other cases yet..."
 		metric_round = cld(o.candle_value,60)
-		# cut_data_1m!(o, c)
+		# trim_1m_data!(o, c)
 
 		# @display [unix2datetime.(floor.([Int64], o.t ./ 1000)) o.c]
 		@assert  all(o.t[2:end] .- o.t[1:end-1] .== 60_000) "$(o.t[2:end] .- o.t[1:end-1])  ?== $(60_000)"
