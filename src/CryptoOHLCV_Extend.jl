@@ -7,20 +7,9 @@ merge(before::Nothing,cached,after::Nothing) = cached, false
 
 
 ######### Optionalble Redefineable Interfaces
-append!(before,          after::Nothing) = before 
-append!(before::Nothing, after)          = after
-
-request_data_beforehand(obj, c) = missing_data_before(obj,c) ? load_data!(init_before_data(obj,c)) : nothing
-request_data_afterhand(c,  obj) = missing_data_after(obj,c)  ? load_data!(init_after_data(obj,c))  : nothing
-
-
-missing_data_before(o::T1, c::T2)  where {T1 <: CandleType, T2 <: CandleType} = first(o.timestamps) < first(c.timestamps)
-missing_data_after(o::T1,  c::T2)  where {T1 <: CandleType, T2 <: CandleType} = last(c.timestamps)  < last(o.timestamps)
-
-init_before_data(o::T1, c::T2)  where {T1 <: CandleType, T2 <: CandleType} = init(T1, o.set, o.exchange, o.market, o.is_futures, o.candle_type, o.candle_value, first(o.timestamps), first(c.timestamps))
-init_after_data(o::T1,  c::T2)  where {T1 <: CandleType, T2 <: CandleType} = init(T2, o.set, o.exchange, o.market, o.is_futures, o.candle_type, o.candle_value, last(c.timestamps),  last(o.timestamps))
-
-append!(o::T1, c::T2)                where {T1 <: CandleType, T2 <: CandleType} = begin 
+append!(before,          after::Nothing)  = before 
+append!(before::Nothing, after)           = after
+append!(o::T, c::T) where T <: CandleType = begin 
 	if o.t[end]==c.t[1]
 		o.t = vcat(o.t[1:end-1], c.t)
 		o.o = vcat(o.o[1:end-1], c.o)
@@ -39,6 +28,17 @@ append!(o::T1, c::T2)                where {T1 <: CandleType, T2 <: CandleType} 
 	o.timestamps = first(o.timestamps):last(c.timestamps)
 	return o
 end
+
+request_data_beforehand(obj, c) = missing_data_before(obj,c) ? load_data!(init_before_data(obj,c)) : nothing
+request_data_afterhand(c,  obj) = missing_data_after(obj,c)  ? load_data!(init_after_data(obj,c))  : nothing
+
+
+missing_data_before(o::T1, c::T2)  where {T1 <: CandleType, T2 <: CandleType} = first(o.timestamps) < first(c.timestamps)
+missing_data_after(o::T1,  c::T2)  where {T1 <: CandleType, T2 <: CandleType} = last(c.timestamps)  < last(o.timestamps)
+
+init_before_data(o::T1, c::T2)  where {T1 <: CandleType, T2 <: CandleType} = init(T1, o.set, o.exchange, o.market, o.is_futures, o.candle_type, o.candle_value, first(o.timestamps), first(c.timestamps))
+init_after_data(o::T1,  c::T2)  where {T1 <: CandleType, T2 <: CandleType} = init(T2, o.set, o.exchange, o.market, o.is_futures, o.candle_type, o.candle_value, last(c.timestamps),  last(o.timestamps))
+
 
 trim_to_requested_range!(o::T1, c::T2)    where {T1 <: CandleType, T2 <: CandleType} = return if o.candle_type in [:SECOND,:MINUTE,:HOUR,:DAY]
 	trim_1m_data!(o, c)
